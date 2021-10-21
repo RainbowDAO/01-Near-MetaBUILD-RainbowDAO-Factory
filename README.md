@@ -2,7 +2,7 @@
 ## Version 01
 
 
-###RainbowCore
+### RainbowCore
 - 角色管理roleManage
 - 权限管理 privilegeManage
 - 路由管理 routeManage
@@ -16,7 +16,7 @@
 - erc20Factory  erc20
 ### DAO工厂  
 - 工厂合约 daoFactory
--模板管理 templateManagement
+- 模板管理 templateManagement
 - DAO类别管理 daoCategory
 - DAO基本信息管理 daoManage
 - DAO治理(提案) daoGovnance
