@@ -9,7 +9,7 @@
 - 核心     core
 ### 用户管理
 - 用户合约（包含推荐关系） user
-- 收入管理
+### 收入管理
 - 收入类别管理 incomeCategory
 - 收入比例管理 incomeProportion
 ### 代币工厂  
