@@ -1,22 +1,21 @@
 # RainbowDao ink!  
 ## Version 01
-### 彩虹DAO治理
+### 彩虹DAO治理 (罗中运)
 - 治理 rainbowGovnance
 
-### 多签管理
+### 多签管理 (肖含)
 - 多签管理合约 multiSignManage
-### RainbowCore
+### RainbowCore  （王行）
 - 角色管理 roleManage
 - 权限管理 privilegeManage
 - 路由管理 routeManage
 - 核心     core
-### 用户管理
+### 用户管理    (王中祥)
 - 用户合约（包含推荐关系） user
-### 收入管理
+### 收入管理 (肖含)
 - 收入类别管理 incomeCategory
-- 收入比例管理 incomeProportion
-### 代币工厂  
-- erc20Factory  erc20
+### 代币工厂   （胡迎芳）
+- erc20Factory  erc20  
 ### DAO工厂  
 - 工厂合约 daoFactory
 - 模板管理 templateManagement
