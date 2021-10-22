@@ -1,9 +1,12 @@
 # RainbowDao ink!  
 ## Version 01
+### 彩虹DAO治理
+- 治理 rainbowGovnance
 
-
+### 多签管理
+- 多签管理合约 multiSignManage
 ### RainbowCore
-- 角色管理roleManage
+- 角色管理 roleManage
 - 权限管理 privilegeManage
 - 路由管理 routeManage
 - 核心     core
