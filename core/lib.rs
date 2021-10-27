@@ -1,74 +1,139 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 
 use ink_lang as ink;
 
 #[ink::contract]
 mod core {
+    use alloc::string::String;
+    // use ink_storage::Lazy;
+    use role_manage::RoleManage;
+    use route_manage::RouteManage;
+    use privilege_manage::PrivilegeManage;
+    const DAO_INIT_BALANCE: u128 = 1_000_000_000_000;
 
-    /// Defines the storage of your contract.
-    /// Add new fields to the below struct in order
-    /// to add new static storage fields to your contract.
     #[ink(storage)]
     pub struct Core {
-        /// Stores a single `bool` value on the storage.
-        value: bool,
+        owner:AccountId,
+        role_manage: Option<RoleManage>,
+        role_manage_addr: Option<AccountId>,
+        route_manage: Option<RouteManage>,
+        route_manage_addr: Option<AccountId>,
+        privilege_manage:Option<PrivilegeManage>,
+        privilege_manage_addr:Option<AccountId>,
     }
 
     impl Core {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
+        // #[ink(constructor)]
+        // pub fn new(role_manage:RoleManage,route_manage:RouteManage,privilege_manage:PrivilegeManage) -> Self {
+        //     let instance = Self {
+        //         owner:Self::env().caller(),
+        //         role_manage : role_manage,
+        //         route_manage : route_manage,
+        //         privilege_manage : privilege_manage,
+        //     };
+        //     instance
+        // }
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+        pub fn new() -> Self {
+            let instance = Self {
+                owner:Self::env().caller(),
+                role_manage : None,
+                role_manage_addr : None,
+                route_manage : None,
+                route_manage_addr : None,
+                privilege_manage : None,
+                privilege_manage_addr : None,
+            };
+            instance
         }
-
-        /// Constructor that initializes the `bool` value to `false`.
-        ///
-        /// Constructors can delegate to other constructors.
-        #[ink(constructor)]
-        pub fn default() -> Self {
-            Self::new(Default::default())
-        }
-
-        /// A message that can be called on instantiated contracts.
-        /// This one flips the value of the stored `bool` from `true`
-        /// to `false` and vice versa.
         #[ink(message)]
-        pub fn flip(&mut self) {
-            self.value = !self.value;
+        pub fn add_role(&mut self, name: String) {
+            // self.role_manage.add_role(name);
+            self.role_manage.as_mut().unwrap().add_role(name);
+        }
+        #[ink(message)]
+        pub fn add_privilege(&mut self, name: String) {
+            // self.privilege_manage.add_privilege(name);
+            self.privilege_manage.as_mut().unwrap().add_privilege(name);
+        }
+        #[ink(message)]
+        pub fn add_route(&mut self, name: String,value: String) {
+            // self.route_manage.add_route(name,value);
+            self.route_manage.as_mut().unwrap().add_route(name,value);
         }
 
-        /// Simply returns the current value of our `bool`.
         #[ink(message)]
-        pub fn get(&self) -> bool {
-            self.value
+        pub fn init(&mut self, version: u32,role_code_hash: Hash,privilege_code_hash: Hash,route_code_hash: Hash) -> bool {
+            let salt = version.to_le_bytes();
+            let role_manage = RoleManage::new()
+                .endowment(DAO_INIT_BALANCE)
+                .code_hash(role_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let init_role_result = ink_env::instantiate_contract(&role_manage);
+            let role_manage_addr = init_role_result.expect("failed at instantiating the `roleManager` contract");
+            let role_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
+            self.role_manage = Some(role_contract_instance);
+            self.role_manage_addr = Some(role_manage_addr);
+
+            let privilege_manage = PrivilegeManage::new()
+                .endowment(DAO_INIT_BALANCE)
+                .code_hash(privilege_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let init_privilege_result = ink_env::instantiate_contract(&privilege_manage);
+            let privilege_manage_addr = init_privilege_result.expect("failed at instantiating the `TemplateManager` contract");
+            let privilege_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
+            self.privilege_manage = Some(privilege_contract_instance);
+            self.privilege_manage_addr = Some(privilege_manage_addr);
+
+            let route_manage = RouteManage::new()
+                .endowment(DAO_INIT_BALANCE)
+                .code_hash(route_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let init_route_result = ink_env::instantiate_contract(&route_manage);
+            let route_manage_addr = init_route_result.expect("failed at instantiating the `TemplateManager` contract");
+            let route_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
+            self.route_manage = Some(route_contract_instance);
+            self.route_manage_addr = Some(route_manage_addr);
+            true
         }
+        #[ink(message)]
+        pub fn get_Balance(&self) -> u128 {
+            return Self::env().balance();
+        }
+
+        pub
+
     }
 
-    /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
-    /// module and test functions are marked with a `#[test]` attribute.
-    /// The below code is technically just normal Rust code.
-    #[cfg(test)]
-    mod tests {
-        /// Imports all the definitions from the outer scope so we can use them here.
-        use super::*;
-
-        /// Imports `ink_lang` so we can use `#[ink::test]`.
-        use ink_lang as ink;
-
-        /// We test if the default constructor does its job.
-        #[ink::test]
-        fn default_works() {
-            let core = Core::default();
-            assert_eq!(core.get(), false);
-        }
-
-        /// We test a simple use case of our contract.
-        #[ink::test]
-        fn it_works() {
-            let mut core = Core::new(false);
-            assert_eq!(core.get(), false);
-            core.flip();
-            assert_eq!(core.get(), true);
-        }
-    }
+    // /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
+    // /// module and test functions are marked with a `#[test]` attribute.
+    // /// The below code is technically just normal Rust code.
+    // #[cfg(test)]
+    // mod tests {
+    //     /// Imports all the definitions from the outer scope so we can use them here.
+    //     use super::*;
+    //
+    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
+    //     use ink_lang as ink;
+    //
+    //     /// We test if the default constructor does its job.
+    //     #[ink::test]
+    //     fn default_works() {
+    //         let core = Core::default();
+    //         assert_eq!(core.get(), false);
+    //     }
+    //
+    //     /// We test a simple use case of our contract.
+    //     #[ink::test]
+    //     fn it_works() {
+    //         let mut core = Core::new(false);
+    //         assert_eq!(core.get(), false);
+    //         core.flip();
+    //         assert_eq!(core.get(), true);
+    //     }
+    // }
 }

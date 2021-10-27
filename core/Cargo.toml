@@ -10,10 +10,12 @@ ink_metadata = { version = "3.0.0-rc3", default-features = false, features = ["d
 ink_env = { version = "3.0.0-rc3", default-features = false }
 ink_storage = { version = "3.0.0-rc3", default-features = false }
 ink_lang = { version = "3.0.0-rc3", default-features = false }
-
+ink_prelude = { version = "3.0.0-rc3",  default-features = false }
 scale = { package = "parity-scale-codec", version = "2.1", default-features = false, features = ["derive"] }
-scale-info = { version = "0.6.0", default-features = false, features = ["derive"], optional = true }
-
+scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
+role_manage = { version = "0.1.0", path = "../role_manage", default-features = false, features = ["ink-as-dependency"] }
+route_manage = { version = "0.1.0", path = "../route_manage", default-features = false, features = ["ink-as-dependency"] }
+privilege_manage = { version = "0.1.0", path = "../privilege_manage", default-features = false, features = ["ink-as-dependency"] }
 [lib]
 name = "core"
 path = "lib.rs"
@@ -29,7 +31,12 @@ std = [
     "ink_env/std",
     "ink_storage/std",
     "ink_primitives/std",
+    "ink_prelude/std",
     "scale/std",
     "scale-info/std",
+    "role_manage/std",
+    "privilege_manage/std",
+    "route_manage/std"
 ]
 ink-as-dependency = []
+[workspace]
