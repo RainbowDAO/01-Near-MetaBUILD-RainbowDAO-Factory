@@ -105,7 +105,7 @@ mod core {
             return Self::env().balance();
         }
 
-        pub
+
 
     }
 
