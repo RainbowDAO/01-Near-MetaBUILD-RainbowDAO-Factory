@@ -23,7 +23,7 @@ mod role_manage {
         owner:AccountId,
         index:u64,
         role_map:StorageHashMap<u64,String>,
-        role_privileges:StorageHashMap<u64,Vec<String>>,
+        role_privileges:StorageHashMap<String,Vec<String>>,
         user_role:StorageHashMap<AccountId,Vec<String>>,
     }
 
@@ -41,31 +41,13 @@ mod role_manage {
             instance
         }
 
-        /// Constructor that initializes the `bool` value to `false`.
-        ///
-        /// Constructors can delegate to other constructors.
-        // #[ink(constructor)]
-        // pub fn default() -> Self {
-        //     Self::new(Default::default())
-        // }
-
-        /// A message that can be called on instantiated contracts.
-        /// This one flips the value of the stored `bool` from `true`
-        /// to `false` and vice versa.
-        // #[ink(message)]
-        // pub fn flip(&mut self) {
-        //     self.value = !self.value;
-        // }
-
-        /// Simply returns the current value of our `bool`.
-        // #[ink(message)]
-        // pub fn get(&self) -> bool {
-        //     self.value
-        // }
-
+        fn only_core(&self,sender:AccountId) {
+            assert_eq!(self.owner, sender);
+        }
 
         #[ink(message)]
         pub fn add_role(&mut self, name: String) -> bool {
+            self.only_core(Self::env().caller());
             assert_eq!(self.index + 1 > self.index, true);
             self.role_map.insert(self.index, name);
             self.index += 1;
@@ -91,27 +73,29 @@ mod role_manage {
 
 
         #[ink(message)]
-        pub fn role_insert_privilege(&mut self ,index:u64,privilege:String) -> bool {
-            let role_privilege_list = self.role_privileges.entry(index.clone()).or_insert(Vec::new());
+        pub fn role_insert_privilege(&mut self ,name:String,privilege:String) -> bool {
+            self.only_core(Self::env().caller());
+            let role_privilege_list = self.role_privileges.entry(name.clone()).or_insert(Vec::new());
             role_privilege_list.push(privilege);
             true
         }
 
         #[ink(message)]
-        pub fn list_role_privileges(&self,index:u64) -> Vec<String> {
-           let v =  self.role_privileges.get(&index).unwrap().clone();
+        pub fn list_role_privileges(&self,name:String) -> Vec<String> {
+           let v =  self.role_privileges.get(&name).unwrap().clone();
             v
         }
 
         #[ink(message)]
         pub fn add_user_role(&mut self,user:AccountId,role:String) -> bool {
+            self.only_core(Self::env().caller());
             let user_role_list = self.user_role.entry(user.clone()).or_insert(Vec::new());
             user_role_list.push(role);
             true
         }
         #[ink(message)]
         pub fn check_user_role(&self,user:AccountId,role:String) -> bool {
-            let list =  self.user_role.get(&user).unwrap().clone();
+            let list =  self.get_user_roles(user);
             for i in  list{
                 if i == role {
                     return true
@@ -123,6 +107,27 @@ mod role_manage {
         pub fn get_user_roles(&self,user:AccountId) -> Vec<String> {
            let list =  self.user_role.get(&user).unwrap().clone();
             list
+        }
+        #[ink(message)]
+        pub fn check_user_privilege(&self,user:AccountId,privilege:String) -> bool {
+            let list =  self.get_user_privilege(user);
+            for i in  list{
+                if i == privilege {
+                    return true
+                }
+            }
+            false
+        }
+        #[ink(message)]
+        pub fn get_user_privilege(&self,user:AccountId) -> Vec<String> {
+            let mut privilege_vec = Vec::new();
+            // role vec
+            let list =  self.user_role.get(&user).unwrap().clone();
+            for i in list {
+               let mut privileges =  self.role_privileges.get(&i).unwrap().clone();
+                privilege_vec.append(&mut privileges);
+            }
+            privilege_vec
         }
     }
 

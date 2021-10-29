@@ -36,8 +36,13 @@ mod privilege_manage {
             instance
         }
 
+        fn only_core(&self,sender:AccountId) {
+            assert_eq!(self.owner, sender);
+        }
+
         #[ink(message)]
         pub fn add_privilege(&mut self, name: String) -> bool {
+            self.only_core(Self::env().caller());
             assert_eq!(self.index + 1 > self.index, true);
             self.privilege_map.insert(self.index, name);
             self.index += 1;

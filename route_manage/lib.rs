@@ -30,8 +30,13 @@ mod route_manage {
             };
             instance
         }
+        fn only_core(&self,sender:AccountId) {
+            assert_eq!(self.owner, sender);
+        }
+
         #[ink(message)]
         pub fn add_route(&mut self, name: String,value:String) -> bool {
+            // self.only_core(Self::env().caller());
             assert_eq!(self.index + 1 > self.index, true);
             self.route_map.insert(name,value);
             self.index += 1;
@@ -53,6 +58,12 @@ mod route_manage {
         #[ink(message)]
         pub fn query_route_by_name(&self, name: String) -> String {
             self.route_map.get(&name).unwrap().clone()
+        }
+        #[ink(message)]
+        pub fn change_route(&mut self,name:String,value:String) -> bool {
+            // self.only_core(Self::env().caller());
+            self.route_map[&name] = value;
+            true
         }
     }
 
