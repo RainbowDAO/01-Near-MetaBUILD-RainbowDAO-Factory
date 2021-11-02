@@ -3,29 +3,29 @@
 use ink_lang as ink;
 
 #[ink::contract]
-mod template_management {
+mod dao_factory {
 
     /// Defines the storage of your contract.
     /// Add new fields to the below struct in order
     /// to add new static storage fields to your contract.
     #[ink(storage)]
-    pub struct TemplateManagement {
+    pub struct DaoFactory {
         /// Stores a single `bool` value on the storage.
-        value: bool,
+        owner: AccountId,
     }
 
-    impl TemplateManagement {
+    impl DaoFactory {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+        pub fn new() -> Self {
+            Self {
+                owner: Self::env().caller()
+            }
         }
 
+        // pub fn init(&self,)
 
 
-        // pub fn add_template() -> bool {
-        //
-        // }
     }
 
     /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
@@ -42,17 +42,17 @@ mod template_management {
     //     /// We test if the default constructor does its job.
     //     #[ink::test]
     //     fn default_works() {
-    //         let templateManagement = TemplateManagement::default();
-    //         assert_eq!(templateManagement.get(), false);
+    //         let daoFactory = DaoFactory::default();
+    //         assert_eq!(daoFactory.get(), false);
     //     }
     //
     //     /// We test a simple use case of our contract.
     //     #[ink::test]
     //     fn it_works() {
-    //         let mut templateManagement = TemplateManagement::new(false);
-    //         assert_eq!(templateManagement.get(), false);
-    //         templateManagement.flip();
-    //         assert_eq!(templateManagement.get(), true);
+    //         let mut daoFactory = DaoFactory::new(false);
+    //         assert_eq!(daoFactory.get(), false);
+    //         daoFactory.flip();
+    //         assert_eq!(daoFactory.get(), true);
     //     }
     // }
 }
