@@ -9,7 +9,7 @@ mod core {
     // use ink_storage::Lazy;
     use role_manage::RoleManage;
     use route_manage::RouteManage;
-    use privilege_manage::PrivilegeManage;
+    use authority_management::AuthorityManagement;
     const DAO_INIT_BALANCE: u128 = 1_000_000_000_000;
 
     #[ink(storage)]
@@ -19,8 +19,8 @@ mod core {
         role_manage_addr: Option<AccountId>,
         route_manage: Option<RouteManage>,
         route_manage_addr: Option<AccountId>,
-        privilege_manage:Option<PrivilegeManage>,
-        privilege_manage_addr:Option<AccountId>,
+        authority_management:Option<AuthorityManagement>,
+        authority_management_addr:Option<AccountId>,
     }
 
     impl Core {
@@ -42,8 +42,8 @@ mod core {
                 role_manage_addr : None,
                 route_manage : None,
                 route_manage_addr : None,
-                privilege_manage : None,
-                privilege_manage_addr : None,
+                authority_management : None,
+                authority_management_addr : None,
             };
             instance
         }
@@ -55,7 +55,7 @@ mod core {
         #[ink(message)]
         pub fn add_privilege(&mut self, name: String) {
             // self.privilege_manage.add_privilege(name);
-            self.privilege_manage.as_mut().unwrap().add_privilege(name);
+            self.authority_management.as_mut().unwrap().add_privilege(name);
         }
         #[ink(message)]
         pub fn add_route(&mut self, name: String,value: String) {
@@ -77,16 +77,16 @@ mod core {
             self.role_manage = Some(role_contract_instance);
             self.role_manage_addr = Some(role_manage_addr);
 
-            let privilege_manage = PrivilegeManage::new()
+            let authority_management = AuthorityManagement::new()
                 .endowment(DAO_INIT_BALANCE)
                 .code_hash(privilege_code_hash)
                 .salt_bytes(salt)
                 .params();
-            let init_privilege_result = ink_env::instantiate_contract(&privilege_manage);
-            let privilege_manage_addr = init_privilege_result.expect("failed at instantiating the `TemplateManager` contract");
-            let privilege_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
-            self.privilege_manage = Some(privilege_contract_instance);
-            self.privilege_manage_addr = Some(privilege_manage_addr);
+            let init_authority_result = ink_env::instantiate_contract(&authority_management);
+            let authority_management_addr = init_authority_result.expect("failed at instantiating the `TemplateManager` contract");
+            let authority_contract_instance = ink_env::call::FromAccountId::from_account_id(authority_management_addr);
+            self.authority_management = Some(authority_contract_instance);
+            self.authority_management_addr = Some(authority_management_addr);
 
             let route_manage = RouteManage::new()
                 .endowment(DAO_INIT_BALANCE)

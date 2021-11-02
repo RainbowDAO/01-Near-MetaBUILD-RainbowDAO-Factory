@@ -15,7 +15,7 @@ scale = { package = "parity-scale-codec", version = "2.1", default-features = fa
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
 role_manage = { version = "0.1.0", path = "../role_manage", default-features = false, features = ["ink-as-dependency"] }
 route_manage = { version = "0.1.0", path = "../route_manage", default-features = false, features = ["ink-as-dependency"] }
-privilege_manage = { version = "0.1.0", path = "../privilege_manage", default-features = false, features = ["ink-as-dependency"] }
+authority_management = { version = "0.1.0", path = "../authority_management", default-features = false, features = ["ink-as-dependency"] }
 [lib]
 name = "core"
 path = "lib.rs"
@@ -35,7 +35,7 @@ std = [
     "scale/std",
     "scale-info/std",
     "role_manage/std",
-    "privilege_manage/std",
+    "authority_management/std",
     "route_manage/std"
 ]
 ink-as-dependency = []

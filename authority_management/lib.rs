@@ -2,11 +2,11 @@
 extern crate alloc;
 use ink_lang as ink;
 
-pub use self::privilege_manage::{
-    PrivilegeManage,
+pub use self::authority_management::{
+    AuthorityManagement,
 };
 #[ink::contract]
-mod privilege_manage {
+mod authority_management {
     use alloc::string::String;
     use ink_prelude::vec::Vec;
     use ink_prelude::collections::BTreeMap;
@@ -17,14 +17,14 @@ mod privilege_manage {
     /// Add new fields to the below struct in order
     /// to add new static storage fields to your contract.
     #[ink(storage)]
-    pub struct PrivilegeManage {
+    pub struct AuthorityManagement {
         owner:AccountId,
         index:u64,
         privilege_map:StorageHashMap<u64,String>,
 
     }
 
-    impl PrivilegeManage {
+    impl AuthorityManagement {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new() -> Self {
