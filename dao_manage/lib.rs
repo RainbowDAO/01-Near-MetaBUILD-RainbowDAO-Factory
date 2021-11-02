@@ -3,7 +3,7 @@
 use ink_lang as ink;
 
 #[ink::contract]
-mod daoManage {
+mod dao_manage {
 
     /// Defines the storage of your contract.
     /// Add new fields to the below struct in order
@@ -11,37 +11,20 @@ mod daoManage {
     #[ink(storage)]
     pub struct DaoManage {
         /// Stores a single `bool` value on the storage.
-        value: bool,
+        owner: AccountId,
     }
 
     impl DaoManage {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+        pub fn new() -> Self {
+            Self {
+                owner: Self::env().caller()
+            }
         }
 
-        /// Constructor that initializes the `bool` value to `false`.
-        ///
-        /// Constructors can delegate to other constructors.
-        #[ink(constructor)]
-        pub fn default() -> Self {
-            Self::new(Default::default())
-        }
+        // pub fn new_dao(&self,)
 
-        /// A message that can be called on instantiated contracts.
-        /// This one flips the value of the stored `bool` from `true`
-        /// to `false` and vice versa.
-        #[ink(message)]
-        pub fn flip(&mut self) {
-            self.value = !self.value;
-        }
-
-        /// Simply returns the current value of our `bool`.
-        #[ink(message)]
-        pub fn get(&self) -> bool {
-            self.value
-        }
     }
 
     /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
