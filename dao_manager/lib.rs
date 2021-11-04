@@ -20,7 +20,7 @@ mod dao_manager {
     }
 
     impl DAOManager {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
+        /// Create a new dao
         #[ink(constructor)]
         pub fn new(owner:AccountId,dao_id:u64) -> Self {
             Self {
@@ -31,12 +31,17 @@ mod dao_manager {
             }
         }
 
+        /// Set the dao use which template
         #[ink(message)]
         pub fn set_template(&mut self, template: DAOTemplate) -> bool {
             assert_eq!(self.active, false);
             self.template = Some(template);
             true
         }
+
+        /// Initialize Dao and generate various
+        // #[ink(message)]
+        // pub fn  init_by_params(&mut self, params: DAOInitParams, salt: Vec<u8>) -> bool {}
 
     }
 

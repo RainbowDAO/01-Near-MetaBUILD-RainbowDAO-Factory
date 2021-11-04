@@ -96,7 +96,7 @@ mod dao_factory {
             true
         }
 
-        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,version:u8) -> bool {
+        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,version: u8) -> bool {
             assert_eq!(self.instance_index + 1 > self.instance_index, true);
             // let total_balance = Self::env().balance();
             // assert_eq!(total_balance >= 20, true);
