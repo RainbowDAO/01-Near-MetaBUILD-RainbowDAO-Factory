@@ -1,30 +1,55 @@
 #![cfg_attr(not(feature = "std"), no_std)]
-
+extern crate alloc;
 use ink_lang as ink;
+pub use self::dao_base::DaoBase;
 
 #[ink::contract]
 mod dao_base {
 
-    /// Defines the storage of your contract.
-    /// Add new fields to the below struct in order
-    /// to add new static storage fields to your contract.
+    use alloc::string::String;
     #[ink(storage)]
     pub struct DaoBase {
-        /// Stores a single `bool` value on the storage.
-        value: bool,
+        owner: AccountId,
+        name: String,
+        logo: String,
+        desc: String,
     }
 
     impl DaoBase {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        pub fn new(init_value: bool) -> Self {
-            Self { value: init_value }
+        pub fn new() -> Self {
+            Self {
+                owner: Self::env().caller(),
+                name:String::default(),
+                logo:String::default(),
+                desc:String::default(),
+            }
         }
+        #[ink(message)]
+        pub fn init_base(&mut self, name: String, logo: String, desc: String) {
+            self.set_name(name);
+            self.set_logo(logo);
+            self.set_desc(desc);
+        }
+        #[ink(message)]
+        pub fn set_name(&mut self, name: String) {
+            self.name = String::from(name);
+        }
+        #[ink(message)]
+        pub fn set_logo(&mut self, logo: String) {
+            self.logo = String::from(logo);
+        }
+        #[ink(message)]
+        pub fn set_desc(&mut self, desc: String) {
+            self.desc = String::from(desc);
+        }
+
+
+
+
     }
 
-    /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
-    /// module and test functions are marked with a `#[test]` attribute.
-    /// The below code is technically just normal Rust code.
+
     // #[cfg(test)]
     // mod tests {
     //     /// Imports all the definitions from the outer scope so we can use them here.

@@ -8,13 +8,14 @@ edition = "2018"
 ink_primitives = { version = "3.0.0-rc3", default-features = false }
 ink_metadata = { version = "3.0.0-rc3", default-features = false, features = ["derive"], optional = true }
 ink_env = { version = "3.0.0-rc3", default-features = false }
-
+ink_prelude = { version = "3.0.0-rc3",  default-features = false }
 ink_storage = { version = "3.0.0-rc3", default-features = false }
 ink_lang = { version = "3.0.0-rc3", default-features = false }
 
 scale = { package = "parity-scale-codec", version = "2.1", default-features = false, features = ["derive"] }
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
 template_manager = { version = "0.1.0", path = "../template_manager", default-features = false, features = ["ink-as-dependency"] }
+dao_base = { version = "0.1.0", path = "../dao_base", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 name = "dao_manager"
@@ -32,7 +33,9 @@ std = [
     "ink_env/std",
     "ink_storage/std",
     "ink_primitives/std",
+    "ink_prelude/std",
     "template_manager/std",
+    "dao_base/std",
     "scale/std",
     "scale-info/std",
 ]
