@@ -16,7 +16,7 @@ mod route_manage {
     pub struct RouteManage {
         owner:AccountId,
         index:u64,
-        route_map:StorageHashMap<String,String>,
+        route_map:StorageHashMap<String,AccountId>,
     }
 
     impl RouteManage {
@@ -35,7 +35,7 @@ mod route_manage {
         }
 
         #[ink(message)]
-        pub fn add_route(&mut self, name: String,value:String) -> bool {
+        pub fn add_route(&mut self, name: String,value:AccountId) -> bool {
             // self.only_core(Self::env().caller());
             assert_eq!(self.index + 1 > self.index, true);
             self.route_map.insert(name,value);
@@ -56,11 +56,11 @@ mod route_manage {
         // }
 
         #[ink(message)]
-        pub fn query_route_by_name(&self, name: String) -> String {
+        pub fn query_route_by_name(&self, name: String) -> AccountId {
             self.route_map.get(&name).unwrap().clone()
         }
         #[ink(message)]
-        pub fn change_route(&mut self,name:String,value:String) -> bool {
+        pub fn change_route(&mut self,name:String,value:AccountId) -> bool {
             // self.only_core(Self::env().caller());
             self.route_map[&name] = value;
             true

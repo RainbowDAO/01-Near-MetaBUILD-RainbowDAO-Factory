@@ -4,18 +4,27 @@ use ink_lang as ink;
 
 #[ink::contract]
 mod rainbow_govnance {
+
+    use route_manage::RouteManage;
+
     use alloc::string::String;
     use ink_prelude::vec::Vec;
     use ink_prelude::collections::BTreeMap;
-    use ink_storage::{collections::HashMap as StorageHashMap, };
+    use ink_storage::{
+        traits::{
+            PackedLayout,
+            SpreadLayout,
+        },
+        collections::HashMap as StorageHashMap,
+    };
 
 
 
     /// Indicates whether a transaction is already confirmed or needs further confirmations.
-    #[derive(scale::Encode, scale::Decode, Clone)]
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
-    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    derive(ink_storage::traits::StorageLayout)
     )]
 
     #[derive(Debug)]
@@ -23,15 +32,30 @@ mod rainbow_govnance {
         // base module contract's address
         title: String,
         desc: String,
-        start_block:u64,
-        end_block:u64,
+        start_block:u32,
+        end_block:u32,
         for_votes:u64,
         against_votes:u64,
         owner:AccountId,
         proposal_id:u64,
-        canceled:bool
-
+        canceled:bool,
+        executed:bool,
+        receipts:StorageHashMap<AccountId, Receipt>,
     }
+    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(ink_storage::traits::StorageLayout)
+    )]
+
+    #[derive(Debug)]
+    pub struct Receipt {
+        has_voted:bool,
+        support: bool,
+        votes:u64
+    }
+
 
     #[ink(event)]
     pub struct ProposalCreated {
@@ -51,26 +75,31 @@ mod rainbow_govnance {
         Pending,
         Active,
         Defeated,
-        Succeeded
+        Succeeded,
+        Executed,
+        Expired,
+        Queued
     }
     #[ink(storage)]
     pub struct RainbowGovnance {
         owner: AccountId,
         proposals:StorageHashMap<u64, Proposal>,
-        voting_delay:u64,
-        voting_period:u64,
-        proposal_length:u64
+        voting_delay:u32,
+        voting_period:u32,
+        proposal_length:u64,
+        route_addr:AccountId,
     }
 
     impl RainbowGovnance {
         #[ink(constructor)]
-        pub fn new() -> Self {
+        pub fn new(route_addr:AccountId) -> Self {
             Self {
                 owner: Self::env().caller(),
                 proposals:StorageHashMap::new(),
                 voting_delay:1,
                 voting_period:259200, //3 days
-                proposal_length:0
+                proposal_length:0,
+                route_addr
             }
         }
 
@@ -89,7 +118,9 @@ mod rainbow_govnance {
                 for_votes:0,
                 against_votes:0,
                 owner:Self::env().caller(),
-                canceled:false
+                canceled:false,
+                executed:false,
+                receipts : StorageHashMap::new()
             };
             self.proposals.insert(proposal_id, proposal_info);
             self.env().emit_event(ProposalCreated{
@@ -105,6 +136,38 @@ mod rainbow_govnance {
             let proposal:Proposal =  self.proposals.get(&index).unwrap().clone();
             if proposal.canceled {return ProposalState::Canceled }
             else if block_number <= proposal.start_block { return ProposalState::Pending}
+            else if block_number <= proposal.end_block { return ProposalState::Active}
+            else if proposal.for_votes <= proposal.against_votes { return ProposalState::Defeated}
+            else if proposal.executed { return ProposalState::Executed}
+            else if block_number >  proposal.end_block{ return ProposalState::Expired}
+            else { return ProposalState::Queued }
+        }
+        #[ink(message)]
+        pub fn  exec(&mut self,index:u64,target_name:String,exec_string:String) -> bool {
+            let mut proposal:Proposal = self.route_map.get(&inde).unwrap().clone();
+            assert!(self.state(index) ==  ProposalState::Queued);
+            let addr =  self.get_contract_addr(&target_name);
+
+            //todo 调用其他合约
+
+            proposal.executed = true;
+
+            true
+
+        }
+        #[ink(message)]
+        pub fn get_contract_addr(&self,target_name:String) ->AccountId {
+            let route_instance: RouteManage = ink_env::call::FromAccountId::from_account_id(self.route_addr);
+            return route_instance.query_route_by_name(&target_name);
+        }
+        #[ink(message)]
+        pub fn cast_vote(&self,proposal_id:u64,support:bool) ->bool {
+            let caller = Self::env().caller();
+            assert!(self.state(proposal_id) ==  ProposalState::Active);
+            let mut proposal:Proposal = self.route_map.get(&proposal_id).unwrap().clone();
+            let receipts =  proposal.receipts.get(&caller).unwrap().clone();
+            assert!(receipts.has_voted ==  false);
+
         }
     }
 
