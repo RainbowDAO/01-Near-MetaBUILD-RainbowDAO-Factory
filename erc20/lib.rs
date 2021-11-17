@@ -9,8 +9,24 @@ mod erc20 {
     use ink_storage::{
         collections::HashMap as StorageHashMap,
         lazy::Lazy,
+        traits::{
+            PackedLayout,
+            SpreadLayout,
+        }
     };
 
+    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
+
+    #[derive(Debug)]
+    pub struct Checkpoint {
+        from_block:u32,
+        votes:u128
+    }
     /// A simple ERC-20 contract.
     #[ink(storage)]
     pub struct Erc20 {
@@ -30,7 +46,7 @@ mod erc20 {
         delegates:StorageHashMap<AccountId,AccountId>,
     }
 
-    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[derive(scale::Encode, scale::Decode, Clone)]
     #[cfg_attr(
     feature = "std",
     derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
@@ -44,15 +60,7 @@ mod erc20 {
     }
 
 
-    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
-    #[cfg_attr(
-    feature = "std",
-    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
-    )]
-    pub struct Checkpoint {
-       from_block:u32,
-       votes:u128
-    }
+
 
     /// Event emitted when a token transfer occurs.
     #[ink(event)]
@@ -83,6 +91,12 @@ mod erc20 {
         old_votes: u128,
         new_votes: u128,
     }
+    #[ink(event)]
+    pub struct DelegateChanged {
+        delegator:AccountId,
+        current_delegate:AccountId,
+        delegatee:AccountId
+    }
 
     /// The ERC-20 error types.
     #[derive(Debug, PartialEq, Eq, scale::Encode, scale::Decode)]
@@ -103,7 +117,7 @@ mod erc20 {
         pub fn new(initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId) -> Self {
             let mut balances = StorageHashMap::new();
             balances.insert(owner, initial_supply);
-            let instance = Self {
+            let  instance = Self {
                 total_supply: Lazy::new(initial_supply),
                 balances,
                 allowances: StorageHashMap::new(),
@@ -230,8 +244,11 @@ mod erc20 {
             let to_balance = self.balance_of(to);
             self.balances.insert(to, to_balance + value);
 
-            self.move_delegates(self.delegates.get(&from).copied().unwrap(),self.delegates.get(&to).copied().unwrap(),value);
-
+            self.move_delegates(
+                self.delegates.get(&from).unwrap_or(&AccountId::default()).clone() ,
+                self.delegates.get(&to).unwrap_or(&AccountId::default()).clone(),
+                value
+            );
 
             self.env().emit_event(Transfer {
                 from: Some(from),
@@ -240,41 +257,104 @@ mod erc20 {
             });
             Ok(())
         }
+
+        // fn _mint_token(
+        //     &mut self,
+        //     to: AccountId,
+        //     amount: Balance,
+        // ) -> bool {
+        //     let total_supply = self.total_supply();
+        //     assert_eq!(total_supply + amount >= total_supply, true);
+        //     let to_balance = self.balance_of_or_zero(&to);
+        //     assert_eq!(to_balance + amount >= to_balance, true);
+        //     self.total_supply += amount;
+        //     self.balances.insert(to, to_balance + amount);
+        //     self.env().emit_event(Transfer {
+        //         from: None,
+        //         to: Some(to),
+        //         value: amount,
+        //     });
+        //     true
+        // }
+
         #[ink(message)]
-        fn get_current_votes(&self,user:AccountId) -> u128 {
-            let n_checkpoints = self.num_check_points.get(&user).copied().unwrap();
-            let check_point:Checkpoint = self.check_points.get(&(user,n_checkpoints - 1)).copied().unwrap();
+        pub fn get_current_votes(&self,user:AccountId) -> u128 {
+            let n_checkpoints = self.num_check_points.get(&user).unwrap().clone();
+            let check_point:Checkpoint = self.check_points.get(&(user,n_checkpoints - 1)).unwrap().clone();
             return if n_checkpoints > 0 {check_point.votes}  else { 0 } ;
         }
         #[ink(message)]
-        fn get_prior_votes(&self,user:AccountId,block_number:u128) -> u128 {
+        pub fn get_prior_votes(&self,account:AccountId,block_number:u32) -> u128 {
+            assert!(block_number <  self.env().block_number());
+            let n_checkpoints = self.num_check_points.get(&account).unwrap().clone();
+            if n_checkpoints == 0 {
+                return 0;
+            }
+            let check_point:Checkpoint = self.check_points.get(&(account,n_checkpoints - 1)).unwrap().clone();
+            if check_point.from_block <= block_number {
+                return check_point.votes;
+            }
+            // Next check implicit zero balance
+            let check_point_zero:Checkpoint = self.check_points.get(&(account,0)).unwrap().clone();
+            if check_point_zero.from_block > block_number {
+                return 0;
+            }
+            let mut lower:u32 = 0;
+            let mut upper:u32 = n_checkpoints - 1;
+            while upper > lower {
+                let center:u32 = upper - (upper - lower) / 2; // ceil, avoiding overflow
+                let  cp:Checkpoint = self.check_points.get(&(account,center)).unwrap().clone();
+                if cp.from_block == block_number {
+                    return cp.votes;
+                } else if cp.from_block < block_number {
+                    lower = center;
+                } else {
+                    upper = center - 1;
+                }
+            }
+            let outer_cp:Checkpoint = self.check_points.get(&(account,lower)).unwrap().clone();
+            return outer_cp.votes;
+        }
+        #[ink(message)]
+        pub fn delegate(&mut self,delegatee:AccountId) -> bool {
+            let delegator = self.env().caller();
+            let current_delegate =  self.delegates.get(&delegator).unwrap_or(&AccountId::default()).clone();
+            let delegator_balance = self.balance_of(delegator);
+            self.delegates.insert(delegator,delegatee);
+            Self::env().emit_event(DelegateChanged {
+                delegator,
+                current_delegate,
+                delegatee
+            });
+            self.move_delegates(current_delegate, delegatee, delegator_balance);
 
+            true
         }
 
-        #[ink(message)]
-        fn move_delegates(&self,src_rep:AccountId,dst_rep:AccountId,amount:u128) -> bool {
-            if sec_rep != dst_rep && amount > 0 {
-                if src_rep != None {
-                    let src_rep_num =  self.num_check_points.get(&src_rep).copied().unwrap_or(0);
-                    let check_point:Checkpoint = self.check_points.get(&(src_rep,src_rep_num - 1)).copied().unwrap();
+
+        fn move_delegates(&mut self,src_rep:AccountId,dst_rep:AccountId,amount:u128) -> bool {
+            if src_rep != dst_rep && amount > 0 {
+                if src_rep != AccountId::default() {
+                    let src_rep_num =  self.num_check_points.get(&src_rep).unwrap_or(&0).clone();
+                    let check_point:Checkpoint = self.check_points.get(&(src_rep,src_rep_num - 1)).unwrap().clone();
                     let src_rep_old = if src_rep_num > 0 {check_point.votes}  else { 0 } ;
                     let src_rep_new =  src_rep_old - amount;
                     self.write_check_point(src_rep,src_rep_num,src_rep_old,src_rep_new);
                 }
-                if dst_rep != None {
+                if dst_rep != AccountId::default() {
                     let dst_rep_num = self.num_check_points.get(&dst_rep).copied().unwrap_or(0);
-                    let check_point:Checkpoint = self.check_points.get(&(dst_rep,dst_rep_num - 1)).copied().unwrap();
+                    let check_point:Checkpoint = self.check_points.get(&(dst_rep,dst_rep_num - 1)).unwrap().clone();
                     let dst_rep_old = if dst_rep_num > 0 {check_point.votes}  else { 0 } ;
                     let dsp_rep_new =  dst_rep_old + amount;
                     self.write_check_point(dst_rep,dst_rep_num,dst_rep_old,dsp_rep_new);
                 }
             }
-
+            true
         }
-        #[ink(message)]
+
         fn write_check_point(&mut self,delegatee:AccountId,n_checkpoints:u32,old_votes:u128,new_votes:u128) -> bool {
             let block_number = self.env().block_number();
-            let check_point:Checkpoint = self.check_points.get(&(delegatee,n_checkpoints - 1)).copied().unwrap();
+            let check_point:Checkpoint = self.check_points.get(&(delegatee,n_checkpoints - 1)).unwrap().clone();
             if  n_checkpoints>0 && check_point.from_block == block_number  {
                 self.check_points.insert((delegatee, n_checkpoints - 1), Checkpoint{from_block:check_point.from_block,votes:new_votes});
             } else {
@@ -286,6 +366,7 @@ mod erc20 {
                 old_votes,
                 new_votes,
             });
+            true
         }
 
     }
@@ -348,7 +429,7 @@ mod erc20 {
         #[ink::test]
         fn new_works() {
             // Constructor works.
-            let _erc20 = Erc20::new(100);
+            let _erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
 
             // Transfer event triggered during initial construction.
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
@@ -366,7 +447,7 @@ mod erc20 {
         #[ink::test]
         fn total_supply_works() {
             // Constructor works.
-            let erc20 = Erc20::new(100);
+            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
             assert_transfer_event(
@@ -383,7 +464,7 @@ mod erc20 {
         #[ink::test]
         fn balance_of_works() {
             // Constructor works
-            let erc20 = Erc20::new(100);
+            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
             assert_transfer_event(
@@ -404,7 +485,7 @@ mod erc20 {
         #[ink::test]
         fn transfer_works() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100);
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
@@ -437,7 +518,7 @@ mod erc20 {
         #[ink::test]
         fn invalid_transfer_should_fail() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100);
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");
@@ -483,7 +564,7 @@ mod erc20 {
         #[ink::test]
         fn transfer_from_works() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100);
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
@@ -544,7 +625,7 @@ mod erc20 {
 
         #[ink::test]
         fn allowance_must_not_change_on_failed_transfer() {
-            let mut erc20 = Erc20::new(100);
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");
