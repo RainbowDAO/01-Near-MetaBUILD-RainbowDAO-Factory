@@ -147,7 +147,6 @@ mod rainbow_govnance {
             let mut proposal:Proposal = self.route_map.get(&inde).unwrap().clone();
             assert!(self.state(index) ==  ProposalState::Queued);
             let addr =  self.get_contract_addr(&target_name);
-
             //todo 调用其他合约
 
             proposal.executed = true;
