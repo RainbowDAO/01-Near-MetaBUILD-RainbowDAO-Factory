@@ -1,7 +1,7 @@
 [package]
 name = "erc20"
-version = "3.0.0-rc6"
-authors = ["Parity Technologies <admin@parity.io>"]
+version = "0.1.0"
+authors = ["[your_name] <[your_email]>"]
 edition = "2018"
 
 [dependencies]
@@ -17,7 +17,7 @@ scale-info = { version = "1.0", default-features = false, features = ["derive"],
 [lib]
 name = "erc20"
 path = "lib.rs"
-crate-type = ["cdylib"]
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["std"]

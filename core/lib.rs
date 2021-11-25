@@ -2,7 +2,9 @@
 extern crate alloc;
 
 use ink_lang as ink;
-
+pub use self::core::{
+    Core
+};
 #[ink::contract]
 mod core {
     use alloc::string::String;
