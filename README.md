@@ -1,30 +1,78 @@
-# RainbowDao ink!  
-## Version 01
-### 彩虹DAO治理 (罗中运)
-- 治理 rainbowGovnance
+# RainbowDAO-Protocol-Ink-Test-Version-01
+RainbowDAO Protocol Ink! Test Version 01
 
-### 多签管理 (肖含)
-- 多签管理合约 multiSignManage
-### RainbowCore  （王行）
-- 角色管理 roleManage
-- 权限管理 privilegeManage
-- 路由管理 routeManage
-- 核心     core
-### 用户管理    (王中祥)
-- 用户合约（包含推荐关系） user
-### 收入管理 (肖含)
-- 收入类别管理 incomeCategory
-### 代币工厂   （胡迎芳）
-- erc20Factory  erc20  
-### DAO工厂  
-- 工厂合约 daoFactory
-- 模板管理 templateManagement
-- DAO类别管理 daoCategory
-- DAO基本信息管理 daoManage
-- DAO治理(提案) daoGovnance
-- DAO投票 daoVote
-- DAO成员管理 daoUsers
-- DAO金库管理 daoVault
+![](https://raw.githubusercontent.com/RainbowDAO/Gitcoin/main/pic/0.png)
 
-### Dao类型的逻辑
-创建Dao的时候可以选择创建哪种类型的Dao。类型共有3种，独立Dao,联盟Dao，母子DAO。创建部门的时候，需要选择隶属于哪个Dao。联盟Dao创建成功之后，需要独立Dao进行申请，申请成功之后加入联盟Dao。母子DAO，母子DAO的子DAO由母DAO创建，母DAO有控制子DAO的权限，子DAO的子DAO也可由母DAO管理，以此类推。子DAO对自己直接的子DAO有管理权限，不能跨级管理。例：母DAO A创建了子DAO B,子DAO B创建了C，C创建了D。A有对B,C,D管理的权限。B有C的管理权限，但B管不了D
+
+
+# RainbowDAO 
+
+## Multi-chain DAO Infrastructure Service Protocol
+
+
+
+
+- ## Project Q&A
+
+
+
+
+### 1、What is the RainbowDAO Protocol? 
+
+
+RainbowDAO Protocol is developed under the authorization of the Rainbowcity  Foundation, focusing on the creation of web3 basic component. RainbowDAO Protocol belongs to a multi-chain infrastructure service protocol.  Anyone can create and manage their own DAO organization through RainbowDAO Protocol, including independent DAO,alliance DAO, parent DAO and child DAO. Any DAO can also create a management department within the DAO to achieve multi-level management of the organization.
+
+
+
+### 2、What is the Rainbowcity Foundation？
+
+
+
+Rainbowcity Foundation is a non-profit foundation initiated and founded by Mr. RainbowKun. Headquartered in Singapore, Asia, it mainly engages in the incubation and investment of the crypto ecosystem. Mr. RainbowKun himself is a loyal fan of Bitcoin and a believer of Satoshi Nakamoto, dedicated to the spread of Satoshi Nakamoto's decentralized ideas. He once put forward the concept of "Bit Civilization" for the first time in the world in July 2021 at the Bitcointalk Forum established by Satoshi Nakamoto , hoping to promote the development of the encryption industry worldwide and practice the true Bitcoin spirit.
+
+
+
+Mr. Rainbow Kun believes that in the crypto world, human civilization will have an unprecedented super economy in the future. It is constructed in the form of a decentralized protocol, which puts different and decentralized economic behaviors into a unified economy, and truly becomes the infrastructure of future human civilization in the future. The Rainbow city Foundation was established under this background.
+
+The Rainbowcity Foundation plans to invest in 7 major areas in the next ten years, including Rainbow DeFi, Rainbow Investment, Rainbow Culture, Rainbow Network, Rainbow Industry, Rainbow Education and Rainbow R&D. Strive to become a super economy with a market value of one trillion US dollars. The RainbowDAO Protocol is the first project launched by the Rainbowcity Foundation to build the infrastructure of the DAO ecosystem and contribute our wisdom and strength to the development of the global DAO career.
+
+
+
+### 3、What are the social media of the RainbowDAO Protocol?
+
+
+
+Since our project is officially open globally for the first time, our social media has just been launched. Welcome everyone to join our various social media to learn more about our project and become an early contributor to our project.
+
+
+
+- #### Twitter:    https://twitter.com/RainbowcityDAO
+
+- #### Discord     https://discord.gg/SUBJAcdhS4   
+
+- #### Telegram: https://t.me/RainbowDAO
+
+- #### Medium:   https://medium.com/rainbowcity
+
+- #### Github:    https://github.com/RainbowDAO
+
+- #### Email： RainbowcityKun@gmail.com
+
+- #### RainbowDAO website ：http://www.rainbowdao.io
+
+- #### Rainbowcity website ：https://www.rainbowcity.io
+
+
+
+
+### 4、In which chains will the RainbowDAO Protocol be deployed in the future?
+
+
+
+There are two versions of RainbowDAO Protocol, Solidity version on EVM and Ink! version on WASM.The Solidity version is mainly deployed on Ethereum, BSC, Poygon, Avalanche, Fantom, and various L2 networks; the Ink! version is mainly deployed on the parallel chains on the Polkadot and Kusama relay chains, as well as other blockchains developed with the substrate framework. 
+
+In the future, we will participate in the parachain auctions of the Polkadot network and the Kusama network to create a parachain with DAO  infrastructure service as the core.
+
+
+
+![image](https://raw.githubusercontent.com/RainbowDAO/Gitcoin/main/pic/1.png)
