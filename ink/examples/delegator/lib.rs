@@ -4,127 +4,84 @@ use ink_lang as ink;
 
 #[ink::contract]
 mod delegator {
-    use accumulator::Accumulator;
-    use adder::Adder;
+    use accumulator::AccumulatorRef;
     use ink_storage::{
         traits::{
             PackedLayout,
             SpreadLayout,
         },
-        Lazy,
     };
-    use subber::Subber;
 
-    /// Specifies the state of the `delegator` contract.
-    ///
-    /// In `Adder` state the `delegator` contract will delegate to the `Adder` contract
-    /// and in `Subber` state will delegate to the `Subber` contract.
-    ///
-    /// The initial state is `Adder`.
-    #[derive(
-        Debug,
-        Copy,
-        Clone,
-        PartialEq,
-        Eq,
-        scale::Encode,
-        scale::Decode,
-        SpreadLayout,
-        PackedLayout,
-    )]
+    #[derive(Debug, scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
+    pub struct AddrInstance {
+        pub base: Option<AccumulatorRef>,
+    }
+   
+
+    #[derive(
+        Debug, Copy, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
+        )]
+        #[cfg_attr(
         feature = "std",
         derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
-    )]
-    pub enum Which {
-        Adder,
-        Subber,
-    }
+        )]
+        pub struct Addr {
+            pub base_addr: Option<AccountId>,
+        }
 
-    /// Delegates calls to an `adder` or `subber` contract to mutate
-    /// a value in an `accumulator` contract.
-    ///
-    /// In order to deploy the `delegator` smart contract we first
-    /// have to manually put the code of the `accumulator`, `adder`
-    /// and `subber` smart contracts, receive their code hashes from
-    /// the signalled events and put their code hash into our
-    /// `delegator` smart contract.
     #[ink(storage)]
     pub struct Delegator {
-        /// Says which of `adder` or `subber` is currently in use.
-        which: Which,
-        /// The `accumulator` smart contract.
-        accumulator: Lazy<Accumulator>,
-        /// The `adder` smart contract.
-        adder: Lazy<Adder>,
-        /// The `subber` smart contract.
-        subber: Lazy<Subber>,
+        pub init: bool,
+        pub components: AddrInstance,
+        pub component_addrs: Addr,
     }
 
     impl Delegator {
         /// Instantiate a `delegator` contract with the given sub-contract codes.
         #[ink(constructor)]
-        pub fn new(
-            init_value: i32,
-            version: u32,
-            accumulator_code_hash: Hash,
-            adder_code_hash: Hash,
-            subber_code_hash: Hash,
-        ) -> Self {
-            let total_balance = Self::env().balance();
-            let salt = version.to_le_bytes();
-            let accumulator = Accumulator::new(init_value)
-                .endowment(total_balance / 4)
-                .code_hash(accumulator_code_hash)
-                .salt_bytes(salt)
-                .instantiate()
-                .expect("failed at instantiating the `Accumulator` contract");
-            let adder = Adder::new(accumulator.clone())
-                .endowment(total_balance / 4)
-                .code_hash(adder_code_hash)
-                .salt_bytes(salt)
-                .instantiate()
-                .expect("failed at instantiating the `Adder` contract");
-            let subber = Subber::new(accumulator.clone())
-                .endowment(total_balance / 4)
-                .code_hash(subber_code_hash)
-                .salt_bytes(salt)
-                .instantiate()
-                .expect("failed at instantiating the `Subber` contract");
+        pub fn new() -> Self {
             Self {
-                which: Which::Adder,
-                accumulator: Lazy::new(accumulator),
-                adder: Lazy::new(adder),
-                subber: Lazy::new(subber),
+                init: false,
+                components: DAOComponents {
+                    base: None,
+                   
+                },
+                component_addrs: DAOComponentAddrs {
+                    base_addr: None,
+                },
             }
         }
 
         /// Returns the `accumulator` value.
         #[ink(message)]
-        pub fn get(&self) -> i32 {
-            self.accumulator.get()
+        pub fn get(&self) -> Option<AccountId> {
+            self.component_addrs.base_addr
         }
 
-        /// Delegates the call to either `Adder` or `Subber`.
-        #[ink(message)]
-        pub fn change(&mut self, by: i32) {
-            match self.which {
-                Which::Adder => self.adder.inc(by),
-                Which::Subber => self.subber.dec(by),
-            }
-        }
 
-        /// Switches the `delegator` contract.
         #[ink(message)]
-        pub fn switch(&mut self) {
-            match self.which {
-                Which::Adder => {
-                    self.which = Which::Subber;
-                }
-                Which::Subber => {
-                    self.which = Which::Adder;
-                }
-            }
-        }
+        pub fn init_base(&mut self, base_code_hash: Hash,
+            init_value: i32,version: u32) -> bool {
+            let total_balance = Self::env().balance();
+            // instance base
+            let salt = version.to_le_bytes();
+            let instance_params = AccumulatorRef::new(init_value)
+                .endowment(total_balance / 2)
+                .code_hash(base_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let init_result = ink_env::instantiate_contract(&instance_params);
+            let contract_addr = init_result.expect("failed at instantiating the `Base` contract");
+            let mut contract_instance: AccumulatorRef = ink_env::call::FromAccountId::from_account_id(contract_addr);
+
+            self.components.base = Some(contract_instance);
+            self.component_addrs.base_addr = Some(contract_addr);
+
+            true
+}
     }
 }

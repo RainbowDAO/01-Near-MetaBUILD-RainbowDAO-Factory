@@ -12,7 +12,7 @@ mod rainbow_govnance {
 
     use route_manage::RouteManage;
     use erc20::Erc20;
-    use core::Core;
+    // use core::Core;
     use alloc::string::String;
 
     use ink_prelude::vec::Vec;
@@ -166,9 +166,9 @@ mod rainbow_govnance {
             true
         }
         #[ink(message)]
-        pub fn state(&self,index:u64) -> ProposalState {
+        pub fn state(&self,proposal_id:u64) -> ProposalState {
             let block_number = self.env().block_number();
-            let proposal:Proposal =  self.proposals.get(&index).unwrap().clone();
+            let proposal:Proposal =  self.proposals.get(&proposal_id).unwrap().clone();
             if proposal.canceled {return ProposalState::Canceled }
             else if block_number <= proposal.start_block { return ProposalState::Pending}
             else if block_number <= proposal.end_block { return ProposalState::Active}
@@ -178,30 +178,35 @@ mod rainbow_govnance {
             else { return ProposalState::Queued }
         }
         #[ink(message)]
-        pub fn  exec(&mut self,index:u64) -> bool {
-            let mut proposal:Proposal = self.proposals.get(&index).unwrap().clone();
-            assert!(self.state(index) ==  ProposalState::Queued);
-            //todo 调用其他合约
+        pub fn cancel(&self,proposal_id:u64) -> bool {
+            let mut proposal:Proposal = self.proposals.get(&proposal_id).unwrap().clone();
+            assert!(self.state(proposal_id) !=  ProposalState::Executed);
+            assert!(proposal.owner == Self::env().caller());
+            proposal.canceled = true;
+            true
+        }
+        #[ink(message)]
+        pub fn  exec(&mut self,proposal_id:u64) -> bool {
+            let mut proposal:Proposal = self.proposals.get(&proposal_id).unwrap().clone();
+            assert!(self.state(proposal_id) ==  ProposalState::Queued);
             let result = build_call::<<Self as ::ink_lang::ContractEnv>::Env>()
-                .callee(Proposal.transaction.callee)
-                .gas_limit(Proposal.transaction.gas_limit)
-                .transferred_value(Proposal.transaction.transferred_value)
+                .callee(proposal.transaction.callee)
+                .gas_limit(proposal.transaction.gas_limit)
+                .transferred_value(proposal.transaction.transferred_value)
                 .exec_input(
-                    ExecutionInput::new(Proposal.transaction.selector.into()).push_arg(CallInput(&Proposal.transaction.input)),
+                    ExecutionInput::new(proposal.transaction.selector.into()).push_arg(CallInput(&proposal.transaction.input)),
                 )
                 .returns::<()>()
                 .fire()
                 .unwrap();
             proposal.executed = true;
-
             true
-
         }
-        #[ink(message)]
-        pub fn get_contract_addr(&self,target_name:String) ->AccountId {
-            let route_instance: RouteManage = ink_env::call::FromAccountId::from_account_id(self.route_addr);
-            return route_instance.query_route_by_name(target_name);
-        }
+        // #[ink(message)]
+        // pub fn get_contract_addr(&self,target_name:String) ->AccountId {
+        //     let route_instance: RouteManage = ink_env::call::FromAccountId::from_account_id(self.route_addr);
+        //     return route_instance.query_route_by_name(target_name);
+        // }
         #[ink(message)]
         pub fn cast_vote(&mut self,proposal_id:u64,support:bool) ->bool {
             let caller = Self::env().caller();

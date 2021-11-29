@@ -60,7 +60,7 @@ mod core {
             self.authority_management.as_mut().unwrap().add_privilege(name);
         }
         #[ink(message)]
-        pub fn add_route(&mut self, name: String,value: String) {
+        pub fn add_route(&mut self, name: String,value: AccountId) {
             // self.route_manage.add_route(name,value);
             self.route_manage.as_mut().unwrap().add_route(name,value);
         }
