@@ -4,6 +4,12 @@ use ink_lang as ink;
 
 #[ink::contract]
 mod rainbow_govnance {
+    use ink_env::call::{
+        build_call,
+        utils::ReturnType,
+        ExecutionInput,
+    };
+
     use route_manage::RouteManage;
     use erc20::Erc20;
     use core::Core;
@@ -18,6 +24,17 @@ mod rainbow_govnance {
         },
         collections::HashMap as StorageHashMap,
     };
+    use scale::Output;
+    /// A wrapper that allows us to encode a blob of bytes.
+  ///
+  /// We use this to pass the set of untyped (bytes) parameters to the `CallBuilder`.
+    struct CallInput<'a>(&'a [u8]);
+
+    impl<'a> scale::Encode for CallInput<'a> {
+        fn encode_to<T: Output + ?Sized>(&self, dest: &mut T) {
+            dest.write(self.0);
+        }
+    }
 
     /// Indicates whether a transaction is already confirmed or needs further confirmations.
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
@@ -52,6 +69,27 @@ mod rainbow_govnance {
         canceled:bool,
         executed:bool,
         receipts:BTreeMap<AccountId, Receipt>,
+        transaction: Transaction
+    }
+
+    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
+    #[derive(Debug)]
+    pub struct Transaction {
+        /// The `AccountId` of the contract that is called in this transaction.
+         callee: AccountId,
+        /// The selector bytes that identifies the function of the callee that should be called.
+         selector: [u8; 4],
+        /// The SCALE encoded parameters that are passed to the called function.
+         input: Vec<u8>,
+        /// The amount of chain balance that is transferred to the callee.
+         transferred_value: Balance,
+        /// Gas limit for the execution of the call.
+         gas_limit: u64,
     }
 
 
@@ -101,7 +139,7 @@ mod rainbow_govnance {
         }
 
         #[ink(message)]
-        pub fn propose(&mut self,title:String,desc:String) -> bool {
+        pub fn propose(&mut self,title:String,desc:String, transaction: Transaction) -> bool {
             let start_block = self.env().block_number() + self.voting_delay;
             let end_block = start_block + self.voting_period;
             let proposal_id = self.proposal_length.clone() + 1;
@@ -117,7 +155,8 @@ mod rainbow_govnance {
                 owner:Self::env().caller(),
                 canceled:false,
                 executed:false,
-                receipts : BTreeMap::new()
+                receipts : BTreeMap::new(),
+                transaction
             };
             self.proposals.insert(proposal_id, proposal_info);
             self.env().emit_event(ProposalCreated{
@@ -139,14 +178,22 @@ mod rainbow_govnance {
             else { return ProposalState::Queued }
         }
         #[ink(message)]
-        pub fn  exec(&mut self,index:u64,target_name:String,exec_string:String) -> bool {
+        pub fn  exec(&mut self,index:u64) -> bool {
             let mut proposal:Proposal = self.proposals.get(&index).unwrap().clone();
             assert!(self.state(index) ==  ProposalState::Queued);
-            let addr =  self.get_contract_addr(target_name);
             //todo 调用其他合约
-
-
+            let result = build_call::<<Self as ::ink_lang::ContractEnv>::Env>()
+                .callee(Proposal.transaction.callee)
+                .gas_limit(Proposal.transaction.gas_limit)
+                .transferred_value(Proposal.transaction.transferred_value)
+                .exec_input(
+                    ExecutionInput::new(Proposal.transaction.selector.into()).push_arg(CallInput(&Proposal.transaction.input)),
+                )
+                .returns::<()>()
+                .fire()
+                .unwrap();
             proposal.executed = true;
+
             true
 
         }
@@ -176,30 +223,4 @@ mod rainbow_govnance {
             true
         }
     }
-
-
-    // #[cfg(test)]
-    // mod tests {
-    //     /// Imports all the definitions from the outer scope so we can use them here.
-    //     use super::*;
-    //
-    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
-    //     use ink_lang as ink;
-    //
-    //     /// We test if the default constructor does its job.
-    //     #[ink::test]
-    //     fn default_works() {
-    //         let rainbowGovnance = RainbowGovnance::default();
-    //         assert_eq!(rainbowGovnance.get(), false);
-    //     }
-    //
-    //     /// We test a simple use case of our contract.
-    //     #[ink::test]
-    //     fn it_works() {
-    //         let mut rainbowGovnance = RainbowGovnance::new(false);
-    //         assert_eq!(rainbowGovnance.get(), false);
-    //         rainbowGovnance.flip();
-    //         assert_eq!(rainbowGovnance.get(), true);
-    //     }
-    // }
 }
