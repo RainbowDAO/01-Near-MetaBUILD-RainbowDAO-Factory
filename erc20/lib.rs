@@ -7,6 +7,8 @@ pub use self::erc20::{
 #[ink::contract]
 mod erc20 {
 
+    use route_manage::RouteManage;
+    use income_category::IncomeCategory;
     use alloc::string::String;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
@@ -46,6 +48,7 @@ mod erc20 {
         num_check_points:StorageHashMap<AccountId,u32>,
         check_points:StorageHashMap<(AccountId, u32), Checkpoint>,
         delegates:StorageHashMap<AccountId,AccountId>,
+        route_addr:AccountId
     }
 
     #[derive(scale::Encode, scale::Decode, Clone)]
@@ -116,10 +119,10 @@ mod erc20 {
     impl Erc20 {
         /// Creates a new ERC-20 contract with the specified initial supply.
         #[ink(constructor)]
-        pub fn new(initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId) -> Self {
+        pub fn new(initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId,route_addr:AccountId) -> Self {
             let mut balances = StorageHashMap::new();
             balances.insert(owner, initial_supply);
-            let  instance = Self {
+            let  mut  instance = Self {
                 total_supply: Lazy::new(initial_supply),
                 balances,
                 allowances: StorageHashMap::new(),
@@ -129,14 +132,25 @@ mod erc20 {
                 owner,
                 check_points:StorageHashMap::new(),
                 num_check_points:StorageHashMap::new(),
-                delegates:StorageHashMap::new()
+                delegates:StorageHashMap::new(),
+                route_addr
             };
             Self::env().emit_event(Transfer {
                 from: None,
                 to: Some(owner),
                 value: initial_supply,
             });
-            instance
+           let income_category_addr =  instance.get_contract_addr(String::from("income_category"));
+            instance.send_income_fee(income_category_addr)
+        }
+        #[ink(message)]
+        pub fn send_income_fee(&self,income_category_addr:AccountId) -> bool {
+            let income_instance: IncomeCategory = ink_env::call::FromAccountId::from_account_id(income_category_addr);
+            let category =  income_instance.get_category(String::from("erc20"));
+            if category.is_used {
+                //todo transfer fee to rainbow
+
+            }
         }
 
         /// Returns the total token supply.
@@ -331,6 +345,12 @@ mod erc20 {
             self.move_delegates(current_delegate, delegatee, delegator_balance);
 
             true
+        }
+
+        #[ink(message)]
+        pub fn get_contract_addr(&self,target_name:String) ->AccountId {
+            let route_instance: RouteManage = ink_env::call::FromAccountId::from_account_id(self.route_addr);
+            return route_instance.query_route_by_name(target_name);
         }
 
 

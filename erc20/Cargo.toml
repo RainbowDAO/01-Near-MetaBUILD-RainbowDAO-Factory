@@ -13,6 +13,9 @@ ink_lang = { version = "3.0.0-rc3", path = "../ink/crates/lang", default-feature
 
 scale = { package = "parity-scale-codec", version = "2", default-features = false, features = ["derive"] }
 scale-info = { version = "1.0", default-features = false, features = ["derive"], optional = true }
+route_manage = { version = "0.1.0", path = "../route_manage", default-features = false, features = ["ink-as-dependency"] }
+income_category = { version = "0.1.0", path = "../income_category", default-features = false, features = ["ink-as-dependency"] }
+
 
 [lib]
 name = "erc20"
@@ -31,6 +34,8 @@ std = [
     "scale/std",
     "scale-info",
     "scale-info/std",
+    "route_manage/std",
+    "income_category/std",
 ]
 ink-as-dependency = []
 ink-experimental-engine = ["ink_env/ink-experimental-engine"]
