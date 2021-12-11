@@ -6,9 +6,6 @@ pub use self::erc20::{
 };
 #[ink::contract]
 mod erc20 {
-
-    use route_manage::RouteManage;
-    use income_category::IncomeCategory;
     use alloc::string::String;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
@@ -48,7 +45,6 @@ mod erc20 {
         num_check_points:StorageHashMap<AccountId,u32>,
         check_points:StorageHashMap<(AccountId, u32), Checkpoint>,
         delegates:StorageHashMap<AccountId,AccountId>,
-        route_addr:AccountId
     }
 
     #[derive(scale::Encode, scale::Decode, Clone)]
@@ -119,10 +115,10 @@ mod erc20 {
     impl Erc20 {
         /// Creates a new ERC-20 contract with the specified initial supply.
         #[ink(constructor)]
-        pub fn new(initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId,route_addr:AccountId) -> Self {
+        pub fn new(initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId) -> Self {
             let mut balances = StorageHashMap::new();
             balances.insert(owner, initial_supply);
-            let  mut  instance = Self {
+            let    instance = Self {
                 total_supply: Lazy::new(initial_supply),
                 balances,
                 allowances: StorageHashMap::new(),
@@ -133,25 +129,16 @@ mod erc20 {
                 check_points:StorageHashMap::new(),
                 num_check_points:StorageHashMap::new(),
                 delegates:StorageHashMap::new(),
-                route_addr
             };
             Self::env().emit_event(Transfer {
                 from: None,
                 to: Some(owner),
                 value: initial_supply,
             });
-           let income_category_addr =  instance.get_contract_addr(String::from("income_category"));
-            instance.send_income_fee(income_category_addr)
-        }
-        #[ink(message)]
-        pub fn send_income_fee(&self,income_category_addr:AccountId) -> bool {
-            let income_instance: IncomeCategory = ink_env::call::FromAccountId::from_account_id(income_category_addr);
-            let category =  income_instance.get_category(String::from("erc20"));
-            if category.is_used {
-                //todo transfer fee to rainbow
+            instance
 
-            }
         }
+
 
         /// Returns the total token supply.
         #[ink(message)]
@@ -347,11 +334,7 @@ mod erc20 {
             true
         }
 
-        #[ink(message)]
-        pub fn get_contract_addr(&self,target_name:String) ->AccountId {
-            let route_instance: RouteManage = ink_env::call::FromAccountId::from_account_id(self.route_addr);
-            return route_instance.query_route_by_name(target_name);
-        }
+
 
 
         fn move_delegates(&mut self,src_rep:AccountId,dst_rep:AccountId,amount:u128) -> bool {
@@ -451,7 +434,7 @@ mod erc20 {
         #[ink::test]
         fn new_works() {
             // Constructor works.
-            let _erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let _erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
 
             // Transfer event triggered during initial construction.
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
@@ -469,7 +452,7 @@ mod erc20 {
         #[ink::test]
         fn total_supply_works() {
             // Constructor works.
-            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
             assert_transfer_event(
@@ -486,7 +469,7 @@ mod erc20 {
         #[ink::test]
         fn balance_of_works() {
             // Constructor works
-            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
             assert_transfer_event(
@@ -507,7 +490,7 @@ mod erc20 {
         #[ink::test]
         fn transfer_works() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
@@ -540,7 +523,7 @@ mod erc20 {
         #[ink::test]
         fn invalid_transfer_should_fail() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");
@@ -586,7 +569,7 @@ mod erc20 {
         #[ink::test]
         fn transfer_from_works() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
@@ -647,7 +630,7 @@ mod erc20 {
 
         #[ink::test]
         fn allowance_must_not_change_on_failed_transfer() {
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");

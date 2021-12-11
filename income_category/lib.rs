@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "std"), no_std)]
+extern crate alloc;
 pub use self::income_category::{
     IncomeCategory
 };
@@ -6,7 +7,15 @@ use ink_lang as ink;
 
 #[ink::contract]
 mod income_category {
-
+    use alloc::string::String;
+    use ink_storage::{
+        collections::HashMap as StorageHashMap,
+        lazy::Lazy,
+        traits::{
+            PackedLayout,
+            SpreadLayout,
+        }
+    };
     /// Indicates whether a transaction is already confirmed or needs further confirmations.
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
@@ -16,8 +25,9 @@ mod income_category {
 
     #[derive(Debug)]
     pub struct IncomeInfo {
-        is_used:bool,
-        fee: u128,
+       pub is_used:bool,
+       pub fee: u128,
+       pub token: AccountId
     }
     #[ink(storage)]
     pub struct IncomeCategory {
@@ -35,7 +45,7 @@ mod income_category {
             }
         }
         #[ink(message)]
-        #[ink(selector = "0xDEADBEEF")]
+        #[ink(selector = 0xDEADBEEF)]
         pub fn save_category(&mut self,name:String,income:IncomeInfo) -> bool {
             self.only_owner(Self::env().caller());
             self.category.insert(name,income);
@@ -52,43 +62,17 @@ mod income_category {
            self.category.get(&name).unwrap().clone()
         }
 
+
         #[ink(message)]
         pub fn transfer_owner(&mut self,new_owner:AccountId) -> bool {
             self.only_owner(Self::env().caller());
             self.owner = new_owner;
+            true
         }
 
 
         fn only_owner(&self,sender:AccountId) {
             assert_eq!(self.owner, sender);
-        }
-    }
-
-    /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
-    /// module and test functions are marked with a `#[test]` attribute.
-    /// The below code is technically just normal Rust code.
-    #[cfg(test)]
-    mod tests {
-        /// Imports all the definitions from the outer scope so we can use them here.
-        use super::*;
-
-        /// Imports `ink_lang` so we can use `#[ink::test]`.
-        use ink_lang as ink;
-
-        /// We test if the default constructor does its job.
-        #[ink::test]
-        fn default_works() {
-            let incomeCategory = IncomeCategory::default();
-            assert_eq!(incomeCategory.get(), false);
-        }
-
-        /// We test a simple use case of our contract.
-        #[ink::test]
-        fn it_works() {
-            let mut incomeCategory = IncomeCategory::new(false);
-            assert_eq!(incomeCategory.get(), false);
-            incomeCategory.flip();
-            assert_eq!(incomeCategory.get(), true);
         }
     }
 }
