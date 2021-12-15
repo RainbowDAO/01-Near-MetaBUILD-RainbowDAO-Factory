@@ -1,25 +1,26 @@
 [package]
-name = "core"
+name = "kernel"
 version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2018"
 
-[dependencies]
-ink_primitives = { version = "3.0.0-rc5", path = "../ink/crates/primitives", default-features = false }
-ink_metadata = { version = "3.0.0-rc5", path = "../ink/crates/metadata", default-features = false, features = ["derive"], optional = true }
-ink_env = { version = "3.0.0-rc5", path = "../ink/crates/env", default-features = false }
-ink_prelude = { version = "3.0.0-rc5", path = "../ink/crates/prelude", default-features = false }
-ink_storage = { version = "3.0.0-rc5", path = "../ink/crates/storage", default-features = false }
-ink_lang = { version = "3.0.0-rc5", path = "../ink/crates/lang", default-features = false }
 
-scale = { package = "parity-scale-codec", version = "2.0.1", default-features = false, features = ["derive"] }
+[dependencies]
+ink_primitives = { version = "3.0.0-rc3", path = "../ink/crates/primitives", default-features = false }
+ink_metadata = { version = "3.0.0-rc3", path = "../ink/crates/metadata", default-features = false, features = ["derive"], optional = true }
+ink_env = { version = "3.0.0-rc3", path = "../ink/crates/env", default-features = false }
+ink_storage = { version = "3.0.0-rc3", path = "../ink/crates/storage", default-features = false }
+ink_lang = { version = "3.0.0-rc3", path = "../ink/crates/lang", default-features = false }
+ink_prelude = { version = "3.0.0-rc3",   path = "../ink/crates/prelude" ,default-features = false }
+
+scale = { package = "parity-scale-codec", version = "2.1", default-features = false, features = ["derive"] }
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
 
 role_manage = { version = "0.1.0", path = "../role_manage", default-features = false, features = ["ink-as-dependency"] }
 route_manage = { version = "0.1.0", path = "../route_manage", default-features = false, features = ["ink-as-dependency"] }
 authority_management = { version = "0.1.0", path = "../authority_management", default-features = false, features = ["ink-as-dependency"] }
 [lib]
-name = "core"
+name = "kernel"
 path = "lib.rs"
 crate-type = [
     # Used for normal contract Wasm blobs.
@@ -33,6 +34,7 @@ std = [
     "ink_metadata/std",
     "ink_env/std",
     "ink_storage/std",
+    "ink_prelude/std",
     "ink_primitives/std",
     "scale/std",
     "scale-info/std",
@@ -41,3 +43,5 @@ std = [
     "route_manage/std",
 ]
 ink-as-dependency = []
+[profile.release]
+overflow-checks = false
