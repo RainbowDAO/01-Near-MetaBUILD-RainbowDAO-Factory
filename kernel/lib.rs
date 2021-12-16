@@ -12,7 +12,7 @@ mod kernel {
     use role_manage::RoleManage;
     use route_manage::RouteManage;
     use authority_management::AuthorityManagement;
-    const DAO_INIT_BALANCE: u128 = 1_000_000_000_000;
+    const DAO_INIT_BALANCE: u128 = 1000 * 1_000_000_000_000;
 
     #[ink(storage)]
     pub struct Kernel {
@@ -23,6 +23,7 @@ mod kernel {
         route_manage_addr: Option<AccountId>,
         authority_management:Option<AuthorityManagement>,
         authority_management_addr:Option<AccountId>,
+        init : bool
     }
 
     impl Kernel {
@@ -36,12 +37,18 @@ mod kernel {
                 route_manage_addr : None,
                 authority_management : None,
                 authority_management_addr : None,
+                init:false
             };
             instance
         }
         #[ink(message)]
         pub fn add_role(&mut self, name: String) {
             self.role_manage.as_mut().unwrap().add_role(name);
+
+        }
+        #[ink(message)]
+        pub fn role_insert_privilege(&mut self, name:String,privilege:String) {
+            self.role_manage.as_mut().unwrap().role_insert_privilege(name,privilege);
         }
         #[ink(message)]
         pub fn add_privilege(&mut self, name: String) {
@@ -53,9 +60,14 @@ mod kernel {
             // self.route_manage.add_route(name,value);
             self.route_manage.as_mut().unwrap().add_route(name,value);
         }
-
+        #[ink(message)]
+        pub fn change_route(&mut self, name: String,value: AccountId) {
+            // self.route_manage.add_route(name,value);
+            self.route_manage.as_mut().unwrap().change_route(name,value);
+        }
         #[ink(message)]
         pub fn init(&mut self, version: u32,role_code_hash: Hash,privilege_code_hash: Hash,route_code_hash: Hash) -> bool {
+            assert_eq!(self.init, false);
             let salt = version.to_le_bytes();
             let role_manage = RoleManage::new()
                 .endowment(DAO_INIT_BALANCE)
@@ -89,6 +101,7 @@ mod kernel {
             let route_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
             self.route_manage = Some(route_contract_instance);
             self.route_manage_addr = Some(route_manage_addr);
+            self.init = true;
             true
         }
 

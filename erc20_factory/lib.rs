@@ -9,7 +9,7 @@ mod erc20_factory {
     use route_manage::RouteManage;
     use alloc::string::String;
     use ink_prelude::vec::Vec;
-    const CONTRACT_INIT_BALANCE: u128 = 100 * 1000 * 1_000_000_000_000;
+    const CONTRACT_INIT_BALANCE: u128 = 1000 * 1_000_000_000_000;
 
     #[ink(storage)]
     pub struct Erc20Factory {
@@ -23,18 +23,24 @@ mod erc20_factory {
                 route_addr
             }
         }
-        pub fn new_erc20(&mut self,erc20_code_hash:Hash, salt: &Vec<u8>,initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId) -> AccountId {
+        #[ink(message)]
+        pub fn new_erc20(&mut self,erc20_code_hash:Hash, version:u8,initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId) -> AccountId {
+            let salt = version.to_le_bytes();
             let instance_params = Erc20::new(initial_supply,name,symbol,decimals,owner)
                 .endowment(CONTRACT_INIT_BALANCE)
                 .code_hash(erc20_code_hash)
                 .salt_bytes(salt)
                 .params();
             let init_result = ink_env::instantiate_contract(&instance_params);
-            let contract_addr = init_result.expect("failed at instantiating the `Base` contract");
+            let contract_addr = init_result.expect("failed at instantiating the `Erc20` contract");
             let income_category_addr =  self.get_contract_addr(String::from("income_category"));
-            self.send_income_fee(income_category_addr);
+            if income_category_addr != AccountId::default()  {
+                self.send_income_fee(income_category_addr);
+            }
             contract_addr
         }
+
+
 
 
         fn send_income_fee(&mut self,income_category_addr:AccountId) -> bool {

@@ -55,7 +55,7 @@ mod erc20 {
     pub struct TokenInfo {
         name: String,
         symbol: String,
-        total_supply: u64,
+        total_supply: u128,
         decimals: u8,
         owner: AccountId,
     }
@@ -138,12 +138,15 @@ mod erc20 {
             instance
 
         }
-
-
-        /// Returns the total token supply.
         #[ink(message)]
-        pub fn total_supply(&self) -> Balance {
-            *self.total_supply
+        pub fn query_info(&self) -> TokenInfo {
+            TokenInfo {
+                name: self.name.clone(),
+                symbol: self.symbol.clone(),
+                total_supply: *self.total_supply,
+                decimals: self.decimals,
+                owner: self.owner
+            }
         }
 
         /// Returns the account balance for the specified `owner`.

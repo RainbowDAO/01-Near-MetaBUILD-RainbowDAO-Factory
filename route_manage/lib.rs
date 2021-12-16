@@ -57,7 +57,7 @@ mod route_manage {
 
         #[ink(message)]
         pub fn query_route_by_name(&self, name: String) -> AccountId {
-            self.route_map.get(&name).unwrap().clone()
+            self.route_map.get(&name).copied().unwrap_or(AccountId::default())
         }
         #[ink(message)]
         pub fn change_route(&mut self,name:String,value:AccountId) -> bool {

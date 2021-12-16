@@ -40,3 +40,5 @@ std = [
     "erc20/std",
 ]
 ink-as-dependency = []
+[profile.release]
+overflow-checks = false
