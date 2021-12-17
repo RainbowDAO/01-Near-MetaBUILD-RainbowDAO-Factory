@@ -101,7 +101,7 @@ mod dao_users {
         pub fn join(&mut self,invitation_code:[u8; 32],name:String,user_profile:String) -> Result<(), RandomReadErr> {
             assert_eq!(self.length + 1 > self.length, true);
             let caller = self.env().caller();
-            let user = self.user_info.get(&caller).unwrap().clone();
+            //let user = self.user_info.get(&caller).unwrap().clone();
             assert_eq!(self.exists_user(caller),false);
             // let code = self.create_code();
             let code =  self.env().extension().fetch_random()?;

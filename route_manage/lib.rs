@@ -22,13 +22,11 @@ mod route_manage {
     impl RouteManage {
         #[ink(constructor)]
         pub fn new() -> Self {
-
-            let instance = Self {
+            Self {
                 owner:Self::env().caller(),
                 index: 0,
                 route_map : StorageHashMap::new(),
-            };
-            instance
+            }
         }
         fn only_core(&self,sender:AccountId) {
             assert_eq!(self.owner, sender);
@@ -36,7 +34,7 @@ mod route_manage {
 
         #[ink(message)]
         pub fn add_route(&mut self, name: String,value:AccountId) -> bool {
-            // self.only_core(Self::env().caller());
+            self.only_core(Self::env().caller());
             assert_eq!(self.index + 1 > self.index, true);
             self.route_map.insert(name,value);
             self.index += 1;
@@ -61,7 +59,7 @@ mod route_manage {
         }
         #[ink(message)]
         pub fn change_route(&mut self,name:String,value:AccountId) -> bool {
-            // self.only_core(Self::env().caller());
+            self.only_core(Self::env().caller());
             self.route_map[&name] = value;
             true
         }

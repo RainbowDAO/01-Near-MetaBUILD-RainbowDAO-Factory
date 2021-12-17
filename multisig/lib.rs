@@ -52,7 +52,6 @@ mod multisig {
     // }
 
     impl Multisig {
-        //账户数组、 执行交易的最小多签数
         #[ink(constructor)]
         pub fn new(owners: Vec<AccountId>,min_sign_count: i32,) -> Self {
             let mut map: StorageHashMap<AccountId, i32> = StorageHashMap::new();
@@ -111,26 +110,23 @@ mod multisig {
             true
         }
 
-        ///获取交易信息
+
         #[ink(message)]
         pub fn get_transaction(&self,trans_id: u64) -> Transaction {
             self.transactions.get(&trans_id).unwrap().clone()
         }
-        ///添加管理员
         #[ink(message)]
         pub fn add_manage(&mut self,addr: AccountId) -> bool {
             self.ensure_caller_is_owner();
             self.manager.insert(addr, 1);
             true
         }
-        ///移除管理员
         #[ink(message)]
         pub fn remove_manage(&mut self,addr: AccountId) -> bool {
             self.ensure_caller_is_owner();
             self.manager.insert(addr, 0);
             true
         }
-        ///获取管理员列表
         #[ink(message)]
         pub fn get_manage_list(&self) -> Vec<AccountId> {
             let mut manager_list = Vec::new();
@@ -142,11 +138,10 @@ mod multisig {
             }
             manager_list
         }
-        ///确保调用者是拥有者
         fn ensure_caller_is_owner(&self) -> bool{
             self.owner == self.env().caller()
         }
-        ///确保调用者是管理员
+
         fn ensure_caller_is_manager(&self) -> bool {
             let caller = self.env().caller();
             self.manager.get(&caller) == Some(&1) || self.owner == caller

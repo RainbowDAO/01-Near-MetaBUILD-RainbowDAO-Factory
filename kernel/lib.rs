@@ -18,11 +18,11 @@ mod kernel {
     pub struct Kernel {
         owner:AccountId,
         role_manage: Option<RoleManage>,
-        role_manage_addr: Option<AccountId>,
+        role_manage_addr: AccountId,
         route_manage: Option<RouteManage>,
-        route_manage_addr: Option<AccountId>,
+        route_manage_addr: AccountId,
         authority_management:Option<AuthorityManagement>,
-        authority_management_addr:Option<AccountId>,
+        authority_management_addr:AccountId,
         init : bool
     }
 
@@ -32,27 +32,29 @@ mod kernel {
             let instance = Self {
                 owner:Self::env().caller(),
                 role_manage : None,
-                role_manage_addr : None,
+                role_manage_addr : AccountId::default(),
                 route_manage : None,
-                route_manage_addr : None,
+                route_manage_addr : AccountId::default(),
                 authority_management : None,
-                authority_management_addr : None,
+                authority_management_addr : AccountId::default(),
                 init:false
             };
             instance
         }
         #[ink(message)]
         pub fn add_role(&mut self, name: String) {
+            // self.role_manage.add_role(name);
             self.role_manage.as_mut().unwrap().add_role(name);
 
         }
         #[ink(message)]
         pub fn role_insert_privilege(&mut self, name:String,privilege:String) {
+            // self.role_manage.role_insert_privilege(name,privilege);
             self.role_manage.as_mut().unwrap().role_insert_privilege(name,privilege);
         }
         #[ink(message)]
         pub fn add_privilege(&mut self, name: String) {
-            // self.privilege_manage.add_privilege(name);
+            // self.authority_management.add_privilege(name);
             self.authority_management.as_mut().unwrap().add_privilege(name);
         }
         #[ink(message)]
@@ -64,6 +66,19 @@ mod kernel {
         pub fn change_route(&mut self, name: String,value: AccountId) {
             // self.route_manage.add_route(name,value);
             self.route_manage.as_mut().unwrap().change_route(name,value);
+        }
+
+        #[ink(message)]
+        pub fn get_role_addr(&self) -> AccountId {
+            self.role_manage_addr
+        }
+        #[ink(message)]
+        pub fn get_auth_addr(&self) -> AccountId {
+            self.authority_management_addr
+        }
+        #[ink(message)]
+        pub fn get_route_addr(&self) -> AccountId {
+            self.route_manage_addr
         }
         #[ink(message)]
         pub fn init(&mut self, version: u32,role_code_hash: Hash,privilege_code_hash: Hash,route_code_hash: Hash) -> bool {
@@ -78,7 +93,7 @@ mod kernel {
             let role_manage_addr = init_role_result.expect("failed at instantiating the `roleManager` contract");
             let role_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
             self.role_manage = Some(role_contract_instance);
-            self.role_manage_addr = Some(role_manage_addr);
+            self.role_manage_addr = role_manage_addr;
 
             let authority_management = AuthorityManagement::new()
                 .endowment(DAO_INIT_BALANCE)
@@ -89,7 +104,7 @@ mod kernel {
             let authority_management_addr = init_authority_result.expect("failed at instantiating the `TemplateManager` contract");
             let authority_contract_instance = ink_env::call::FromAccountId::from_account_id(authority_management_addr);
             self.authority_management = Some(authority_contract_instance);
-            self.authority_management_addr = Some(authority_management_addr);
+            self.authority_management_addr = authority_management_addr;
 
             let route_manage = RouteManage::new()
                 .endowment(DAO_INIT_BALANCE)
@@ -100,12 +115,9 @@ mod kernel {
             let route_manage_addr = init_route_result.expect("failed at instantiating the `TemplateManager` contract");
             let route_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
             self.route_manage = Some(route_contract_instance);
-            self.route_manage_addr = Some(route_manage_addr);
+            self.route_manage_addr = route_manage_addr;
             self.init = true;
             true
         }
-
-
-
     }
 }
