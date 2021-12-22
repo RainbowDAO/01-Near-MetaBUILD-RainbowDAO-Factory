@@ -68,7 +68,7 @@ mod multisig {
                 min_sign_count,
             }
         }
-        ///创建交易
+
         #[ink(message)]
         pub fn creat_transfer(&mut self,to: AccountId ,amount: u64) -> bool {
             self.ensure_caller_is_manager();
@@ -87,7 +87,7 @@ mod multisig {
 
             true
         }
-        ///执行签名
+
         #[ink(message)]
         pub fn sign_transaction(&mut self, transaction_id: u64) -> bool {
             self.ensure_caller_is_manager();
@@ -147,5 +147,30 @@ mod multisig {
             self.manager.get(&caller) == Some(&1) || self.owner == caller
         }
 
+    }
+
+    #[cfg(test)]
+    mod tests {
+
+
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+
+        /// You need to get the hash from  RouteManage,authority_management and RoleManage contract
+        #[ink::test]
+        fn init_works() {
+            let accounts =
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+            let mut account_vec = Vec::new();
+            account_vec.push(accounts.alice);
+            account_vec.push(accounts.bob);
+            account_vec.push(accounts.dave);
+            let multisig = Multisig::new(account_vec,2);
+
+            assert!(multisig.get_role_addr() != AccountId::default());
+        }
     }
 }

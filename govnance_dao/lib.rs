@@ -3,7 +3,7 @@ extern crate alloc;
 use ink_lang as ink;
 
 #[ink::contract]
-mod rainbow_govnance {
+mod govnance_dao {
     use ink_env::call::{
         build_call,
         utils::ReturnType,
@@ -114,7 +114,7 @@ mod rainbow_govnance {
         Queued
     }
     #[ink(storage)]
-    pub struct RainbowGovnance {
+    pub struct GovnanceDao {
         owner: AccountId,
         proposals:StorageHashMap<u64, Proposal>,
         voting_delay:u32,
@@ -124,7 +124,7 @@ mod rainbow_govnance {
         rbd_addr:AccountId
     }
 
-    impl RainbowGovnance {
+    impl GovnanceDao {
         #[ink(constructor)]
         pub fn new(route_addr:AccountId,rbd_addr:AccountId) -> Self {
             Self {
@@ -227,5 +227,18 @@ mod rainbow_govnance {
 
             true
         }
+        #[ink(message)]
+        pub fn list_proposals(&self) -> Vec<Proposal> {
+            let mut proposal_vec = Vec::new();
+            let mut iter = self.proposals.values();
+            let mut proposal = iter.next();
+            while proposal.is_some() {
+                proposal_vec.push(proposal.unwrap().clone());
+                proposal = iter.next();
+            }
+            proposal_vec
+        }
+
+
     }
 }

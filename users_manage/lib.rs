@@ -77,13 +77,15 @@ mod users_manage {
         }
         #[ink(message)]
         pub fn exists_user(&self,user:AccountId) -> bool {
-            let user_info = self.user_info.get(&user).unwrap().clone();
-            return user_info.id != 0 ;
+            let user_info = User{id:0,nickname:String::from(""),profile:String::from(""),code:0,address:AccountId::default(),referer:AccountId::default(),childs:Vec::new()};
+            // let exists_user =  self.user_info.get(&user).unwrap();
+            let exists_user =  self.user_info.get(&user).unwrap_or(&user_info);
+            return exists_user.id !=0 ;
         }
 
         #[ink(message)]
         pub fn get_user_by_code(&self,invitation_code:u128) -> AccountId {
-            self.code_user.get(&invitation_code).unwrap().clone()
+            self.code_user.get(&invitation_code).copied().unwrap_or(AccountId::default())
         }
         #[ink(message)]
         pub fn list_user(&self) -> Vec<User> {
@@ -96,8 +98,8 @@ mod users_manage {
             }
             user_vec
         }
-        #[ink(message)]
-        pub fn insert_user_child(&mut self,user:AccountId,child:AccountId) -> bool {
+
+        fn insert_user_child(&mut self,user:AccountId,child:AccountId) -> bool {
             let mut user_info = self.user_info.get_mut(&user).unwrap().clone();
             user_info.childs.push(child);
             true

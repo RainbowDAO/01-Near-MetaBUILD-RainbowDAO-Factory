@@ -120,4 +120,26 @@ mod kernel {
             true
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+
+
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+
+       /// You need to get the hash from  RouteManage,authority_management and RoleManage contract
+        #[ink::test]
+        fn init_works() {
+            let kernel = ::new();
+            let route_manage_hash = String::from("route");
+            let role_manage_hash = String::from("role");
+            let authority_management_hash = String::from("authority");
+            kernel.init(1,role_manage_hash,authority_management_hash,route_manage_hash);
+            assert!(kernel.get_role_addr() != AccountId::default());
+        }
+    }
 }

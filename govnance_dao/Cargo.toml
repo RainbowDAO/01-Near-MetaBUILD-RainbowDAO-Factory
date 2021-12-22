@@ -1,5 +1,5 @@
 [package]
-name = "rainbow_govnance"
+name = "govnance_dao"
 version = "0.1.0"
 authors = ["[your_name] <[your_email]>"]
 edition = "2018"
@@ -17,7 +17,7 @@ route_manage = { version = "0.1.0", path = "../route_manage", default-features =
 erc20 = { version = "0.1.0", path = "../erc20", default-features = false, features = ["ink-as-dependency"] }
 #core = { version = "0.1.0", path = "../core", default-features = false, features = ["ink-as-dependency"] }
 [lib]
-name = "rainbow_govnance"
+name = "govnance_dao"
 path = "lib.rs"
 crate-type = [
 	# Used for normal contract Wasm blobs.
@@ -41,3 +41,5 @@ std = [
 #    "core/std",
 ]
 ink-as-dependency = []
+[profile.release]
+overflow-checks = false
