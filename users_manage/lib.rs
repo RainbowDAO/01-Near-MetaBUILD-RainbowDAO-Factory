@@ -105,4 +105,26 @@ mod users_manage {
             true
         }
     }
+
+    #[cfg(test)]
+    mod tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+
+        /// You need to get the hash from  RouteManage,authority_management and RoleManage contract
+        #[ink::test]
+        fn join_works() {
+            let accounts =
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
+                    .expect("Cannot get accounts");
+            let mut users_manage = UsersManage::new();
+            users_manage.join(0,String::from("test"),String::from("test"));
+            assert!(users_manage.get_user_by_code(1) != AccountId::default());
+            assert!(users_manage.exists_user(accounts.alice) == true);
+            assert!(users_manage.get_user_referer(accounts.alice) == AccountId::default());
+        }
+    }
 }

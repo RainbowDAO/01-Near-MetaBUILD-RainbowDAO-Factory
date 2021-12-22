@@ -285,23 +285,24 @@ mod erc20 {
 
         #[ink(message)]
         pub fn get_current_votes(&self,user:AccountId) -> u128 {
-            let n_checkpoints = self.num_check_points.get(&user).unwrap().clone();
-            let check_point:Checkpoint = self.check_points.get(&(user,n_checkpoints - 1)).unwrap().clone();
-            return if n_checkpoints > 0 {check_point.votes}  else { 0 } ;
+            let default_checkpoint = Checkpoint{from_block:0, votes:0};
+            let n_checkpoints = self.num_check_points.get(&user).unwrap_or(&0).clone();
+            return if n_checkpoints > 0 {  let check_point:Checkpoint = self.check_points.get(&(user,n_checkpoints - 1)).unwrap_or(&default_checkpoint).clone();check_point.votes}  else { 0 } ;
         }
         #[ink(message)]
         pub fn get_prior_votes(&self,account:AccountId,block_number:u32) -> u128 {
             assert!(block_number <  self.env().block_number());
-            let n_checkpoints = self.num_check_points.get(&account).unwrap().clone();
+            let default_checkpoint = Checkpoint{from_block:0, votes:0};
+            let n_checkpoints = self.num_check_points.get(&account).unwrap_or(&0).clone();
             if n_checkpoints == 0 {
                 return 0;
             }
-            let check_point:Checkpoint = self.check_points.get(&(account,n_checkpoints - 1)).unwrap().clone();
+            let check_point:Checkpoint = self.check_points.get(&(account,n_checkpoints - 1)).unwrap_or(&default_checkpoint).clone();
             if check_point.from_block <= block_number {
                 return check_point.votes;
             }
             // Next check implicit zero balance
-            let check_point_zero:Checkpoint = self.check_points.get(&(account,0)).unwrap().clone();
+            let check_point_zero:Checkpoint = self.check_points.get(&(account,0)).unwrap_or(&default_checkpoint).clone();
             if check_point_zero.from_block > block_number {
                 return 0;
             }
@@ -309,7 +310,7 @@ mod erc20 {
             let mut upper:u32 = n_checkpoints - 1;
             while upper > lower {
                 let center:u32 = upper - (upper - lower) / 2; // ceil, avoiding overflow
-                let  cp:Checkpoint = self.check_points.get(&(account,center)).unwrap().clone();
+                let  cp:Checkpoint = self.check_points.get(&(account,center)).unwrap_or(&default_checkpoint).clone();
                 if cp.from_block == block_number {
                     return cp.votes;
                 } else if cp.from_block < block_number {
@@ -318,7 +319,7 @@ mod erc20 {
                     upper = center - 1;
                 }
             }
-            let outer_cp:Checkpoint = self.check_points.get(&(account,lower)).unwrap().clone();
+            let outer_cp:Checkpoint = self.check_points.get(&(account,lower)).unwrap_or(&default_checkpoint).clone();
             return outer_cp.votes;
         }
         #[ink(message)]
@@ -341,17 +342,18 @@ mod erc20 {
 
 
         fn move_delegates(&mut self,src_rep:AccountId,dst_rep:AccountId,amount:u128) -> bool {
+            let default_checkpoint = Checkpoint{from_block:0, votes:0};
             if src_rep != dst_rep && amount > 0 {
                 if src_rep != AccountId::default() {
                     let src_rep_num =  self.num_check_points.get(&src_rep).unwrap_or(&0).clone();
-                    let check_point:Checkpoint = self.check_points.get(&(src_rep,src_rep_num - 1)).unwrap().clone();
+                    let check_point:Checkpoint = self.check_points.get(&(src_rep,src_rep_num - 1)).unwrap_or(&default_checkpoint).clone();
                     let src_rep_old = if src_rep_num > 0 {check_point.votes}  else { 0 } ;
                     let src_rep_new =  src_rep_old - amount;
                     self.write_check_point(src_rep,src_rep_num,src_rep_old,src_rep_new);
                 }
                 if dst_rep != AccountId::default() {
                     let dst_rep_num = self.num_check_points.get(&dst_rep).copied().unwrap_or(0);
-                    let check_point:Checkpoint = self.check_points.get(&(dst_rep,dst_rep_num - 1)).unwrap().clone();
+                    let check_point:Checkpoint = self.check_points.get(&(dst_rep,dst_rep_num - 1)).unwrap_or(&default_checkpoint).clone();
                     let dst_rep_old = if dst_rep_num > 0 {check_point.votes}  else { 0 } ;
                     let dsp_rep_new =  dst_rep_old + amount;
                     self.write_check_point(dst_rep,dst_rep_num,dst_rep_old,dsp_rep_new);

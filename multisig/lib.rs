@@ -163,14 +163,15 @@ mod multisig {
         #[ink::test]
         fn init_works() {
             let accounts =
-                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>();
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
+                    .expect("Cannot get accounts");
             let mut account_vec = Vec::new();
             account_vec.push(accounts.alice);
             account_vec.push(accounts.bob);
-            account_vec.push(accounts.dave);
-            let multisig = Multisig::new(account_vec,2);
-
-            assert!(multisig.get_role_addr() != AccountId::default());
+            account_vec.push(accounts.eve);
+            let mut multisig = Multisig::new(account_vec,2);
+            //multisig.creat_transfer(accounts.bob,2);
+            assert!(multisig.add_manage(accounts.alice) == true);
         }
     }
 }

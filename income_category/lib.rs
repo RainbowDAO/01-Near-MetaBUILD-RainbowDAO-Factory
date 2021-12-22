@@ -8,9 +8,9 @@ use ink_lang as ink;
 #[ink::contract]
 mod income_category {
     use alloc::string::String;
+    use ink_prelude::vec::Vec;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
-        lazy::Lazy,
         traits::{
             PackedLayout,
             SpreadLayout,
@@ -69,6 +69,19 @@ mod income_category {
             self.owner = new_owner;
             true
         }
+
+        #[ink(message)]
+        pub fn list_category(&self) -> Vec<IncomeInfo> {
+            let mut category_vec = Vec::new();
+            let mut iter = self.category.values();
+            let mut category = iter.next();
+            while category.is_some() {
+                category_vec.push(category.unwrap().clone());
+                category = iter.next();
+            }
+            category_vec
+        }
+
 
 
         fn only_owner(&self,sender:AccountId) {
