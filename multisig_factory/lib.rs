@@ -28,7 +28,13 @@ mod multisig_factory {
             }
         }
         #[ink(message)]
-        pub fn new_multisig(&mut self,multisig_hash:Hash,owners: Vec<AccountId>,min_sign_count: i32,version:u8) -> AccountId {
+        pub fn new_multisig(
+            &mut self,
+            multisig_hash:Hash,
+            owners: Vec<AccountId>,
+            min_sign_count: i32,
+            version:u8
+        ) -> AccountId {
             let salt = version.to_le_bytes();
             let instance_params = Multisig::new(owners,min_sign_count)
                 .endowment(CONTRACT_INIT_BALANCE)
@@ -36,7 +42,7 @@ mod multisig_factory {
                 .salt_bytes(salt)
                 .params();
             let init_result = ink_env::instantiate_contract(&instance_params);
-            let contract_addr = init_result.expect("failed at instantiating the `Erc20` contract");
+            let contract_addr = init_result.expect("failed at instantiating the `multisig` contract");
             assert_eq!(self.index + 1 > self.index, true);
             self.multisign.insert(self.index, contract_addr);
             self.index += 1;

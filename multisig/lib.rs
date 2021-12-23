@@ -46,10 +46,7 @@ mod multisig {
         min_sign_count: i32,
     }
 
-    // #[ink(event)]
-    // pub struct RequirementChange {
-    //     new_requirement: u32,
-    // }
+
 
     impl Multisig {
         #[ink(constructor)]
@@ -58,7 +55,6 @@ mod multisig {
             for addr in &owners{
                     map.insert(*addr,1);
                 }
-
             Self {
                 owner: Self::env().caller(),
                 transaction_idx: 0,
@@ -84,7 +80,6 @@ mod multisig {
                 }
             );
             self.transaction_idx += 1;
-
             true
         }
 
@@ -94,10 +89,8 @@ mod multisig {
             let from = self.env().caller();
             let mut t = self.transactions.get_mut(&transaction_id).unwrap();
             assert!(t.status == false, "out!");
-            //判断是否已签名
             let if_sign = t.signatures.get(&from);
             assert!(if_sign == None, "out!");
-
             t.signatures.insert(from, 1);
             t.signature_count += 1;
             let addr = t.to;
@@ -106,7 +99,6 @@ mod multisig {
                 t.status = true;
                 self.env().transfer(addr, num.into());
             }
-
             true
         }
 

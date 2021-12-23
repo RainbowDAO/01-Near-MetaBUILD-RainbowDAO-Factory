@@ -24,7 +24,16 @@ mod erc20_factory {
             }
         }
         #[ink(message)]
-        pub fn new_erc20(&mut self,erc20_code_hash:Hash, version:u8,initial_supply: Balance,name:String,symbol:String,decimals:u8,owner:AccountId) -> AccountId {
+        pub fn new_erc20(
+            &mut self,
+            erc20_code_hash:Hash,
+            version:u8,
+            initial_supply: Balance,
+            name:String,
+            symbol:String,
+            decimals:u8,
+            owner:AccountId
+        ) -> AccountId {
             let salt = version.to_le_bytes();
             let instance_params = Erc20::new(initial_supply,name,symbol,decimals,owner)
                 .endowment(CONTRACT_INIT_BALANCE)

@@ -474,7 +474,15 @@ mod erc20 {
         #[ink::test]
         fn balance_of_works() {
             // Constructor works
-            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
+            let erc20 = Erc20::new(
+                100,
+                String::from("test"),
+                String::from("test"),
+                8,
+                AccountId::from([0x01; 32]),
+                AccountId::from([0x01; 32]),
+                AccountId::from([0x01; 32])
+            );
             // Transfer event triggered during initial construction
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
             assert_transfer_event(

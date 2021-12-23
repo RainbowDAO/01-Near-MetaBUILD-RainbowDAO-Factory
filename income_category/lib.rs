@@ -88,4 +88,26 @@ mod income_category {
             assert_eq!(self.owner, sender);
         }
     }
+    #[cfg(test)]
+    mod tests {
+
+
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+
+        /// You need to get the hash from  RouteManage,authority_management and RoleManage contract
+        #[ink::test]
+        fn init_works() {
+            let accounts =
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
+                    .expect("Cannot get accounts");
+            let mut income_category = IncomeCategory::new(accounts.alice);
+            income_category.save_category(String::from("test"),IncomeInfo{is_used:false,fee:1,token:AccountId::from([0x01; 32])});
+            let income:IncomeInfo =income_category.get_category(String::from("test"));
+            assert!(income.fee == 1);
+        }
+    }
 }

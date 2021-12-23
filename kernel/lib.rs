@@ -8,7 +8,6 @@ pub use self::kernel::{
 #[ink::contract]
 mod kernel {
     use alloc::string::String;
-    // use ink_storage::Lazy;
     use role_manage::RoleManage;
     use route_manage::RouteManage;
     use authority_management::AuthorityManagement;
@@ -81,7 +80,13 @@ mod kernel {
             self.route_manage_addr
         }
         #[ink(message)]
-        pub fn init(&mut self, version: u32,role_code_hash: Hash,privilege_code_hash: Hash,route_code_hash: Hash) -> bool {
+        pub fn init(
+            &mut self,
+            version: u32,
+            role_code_hash: Hash,
+            privilege_code_hash: Hash,
+            route_code_hash: Hash
+        ) -> bool {
             assert_eq!(self.init, false);
             let salt = version.to_le_bytes();
             let role_manage = RoleManage::new()
@@ -101,7 +106,9 @@ mod kernel {
                 .salt_bytes(salt)
                 .params();
             let init_authority_result = ink_env::instantiate_contract(&authority_management);
-            let authority_management_addr = init_authority_result.expect("failed at instantiating the `TemplateManager` contract");
+            let authority_management_addr = init_authority_result.expect(
+                "failed at instantiating the `TemplateManager` contract"
+            );
             let authority_contract_instance = ink_env::call::FromAccountId::from_account_id(authority_management_addr);
             self.authority_management = Some(authority_contract_instance);
             self.authority_management_addr = authority_management_addr;
@@ -112,7 +119,9 @@ mod kernel {
                 .salt_bytes(salt)
                 .params();
             let init_route_result = ink_env::instantiate_contract(&route_manage);
-            let route_manage_addr = init_route_result.expect("failed at instantiating the `TemplateManager` contract");
+            let route_manage_addr = init_route_result.expect(
+                "failed at instantiating the `TemplateManager` contract"
+            );
             let route_contract_instance = ink_env::call::FromAccountId::from_account_id(role_manage_addr);
             self.route_manage = Some(route_contract_instance);
             self.route_manage_addr = route_manage_addr;

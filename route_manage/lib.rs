@@ -66,28 +66,36 @@ mod route_manage {
     }
 
 
-    // #[cfg(test)]
-    // mod tests {
-    //     /// Imports all the definitions from the outer scope so we can use them here.
-    //     use super::*;
-    //
-    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
-    //     use ink_lang as ink;
-    //
-    //     /// We test if the default constructor does its job.
-    //     #[ink::test]
-    //     fn default_works() {
-    //         let routeManage = RouteManage::default();
-    //         assert_eq!(routeManage.get(), false);
-    //     }
-    //
-    //     /// We test a simple use case of our contract.
-    //     #[ink::test]
-    //     fn it_works() {
-    //         let mut routeManage = RouteManage::new(false);
-    //         assert_eq!(routeManage.get(), false);
-    //         routeManage.flip();
-    //         assert_eq!(routeManage.get(), true);
-    //     }
-    // }
+    #[cfg(test)]
+    mod tests {
+
+
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+
+        /// You need to get the hash from  RouteManage,authority_management and RoleManage contract
+        #[ink::test]
+        fn add_route_works() {
+            let accounts =
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
+                    .expect("Cannot get accounts");
+            let mut route_manage = RouteManage::new();
+            route_manage.add_route(String::from("test"),accounts.alice);
+            assert!(route_manage.query_route_by_name(String::from("test")) == accounts.alice);
+
+        }
+        #[ink::test]
+        fn change_route_works() {
+            let accounts =
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
+                    .expect("Cannot get accounts");
+            let mut route_manage = RouteManage::new();
+            route_manage.add_route(String::from("test"),accounts.alice);
+            route_manage.change_route(String::from("test"),accounts.bob);
+            assert!(route_manage.query_route_by_name(String::from("test")) == accounts.bob);
+        }
+    }
 }

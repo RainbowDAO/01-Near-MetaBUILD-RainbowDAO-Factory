@@ -69,28 +69,25 @@ mod authority_management {
     }
 
 
-    // #[cfg(test)]
-    // mod tests {
-    //     /// Imports all the definitions from the outer scope so we can use them here.
-    //     use super::*;
-    //
-    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
-    //     use ink_lang as ink;
-    //
-    //     /// We test if the default constructor does its job.
-    //     #[ink::test]
-    //     fn default_works() {
-    //         let privilegeManage = PrivilegeManage::default();
-    //         assert_eq!(privilegeManage.get(), false);
-    //     }
-    //
-    //     /// We test a simple use case of our contract.
-    //     #[ink::test]
-    //     fn it_works() {
-    //         let mut privilegeManage = PrivilegeManage::new(false);
-    //         assert_eq!(privilegeManage.get(), false);
-    //         privilegeManage.flip();
-    //         assert_eq!(privilegeManage.get(), true);
-    //     }
-    // }
+    #[cfg(test)]
+    mod tests {
+
+
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+
+        /// You need to get the hash from  RouteManage,authority_management and RoleManage contract
+        #[ink::test]
+        fn init_works() {
+            let accounts =
+                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
+                    .expect("Cannot get accounts");
+            let mut authority_management = AuthorityManagement::new();
+            authority_management.add_privilege(String::from("test"));
+            assert!(authority_management.query_privilege_by_index(0)== String::from("test"));
+        }
+    }
 }

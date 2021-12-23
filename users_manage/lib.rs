@@ -54,16 +54,24 @@ mod users_manage {
         pub fn join(&mut self,invitation_code:u128,name:String,user_profile:String) -> bool {
             assert_eq!(self.length + 1 > self.length, true);
             let caller = Self::env().caller();
-            //let user = self.user_info.get(&caller).unwrap().clone();
             assert_eq!(self.exists_user(caller),false);
-            // let code = self.create_code();
             let code =  self.length + 1;
-
             self.code_user.insert(code,caller);
             let referer = if invitation_code == 0 { AccountId::default()} else { self.get_user_by_code(invitation_code) };
             let nickname = if name.is_empty() { String::default()} else {name };
             let profile = if user_profile.is_empty() { String::default()} else {user_profile };
-            self.user_info.insert(caller, User{id:self.length + 1,nickname,profile,code,address:caller,referer,childs:Vec::new()});
+            self.user_info.insert(
+                caller,
+                User{
+                    id:self.length + 1,
+                    nickname,
+                    profile,
+                    code,
+                    address:caller,
+                    referer,
+                    childs:Vec::new()
+                }
+            );
             self.length += 1;
             if referer != AccountId::default() {
                 self.insert_user_child(referer,caller);
@@ -77,8 +85,15 @@ mod users_manage {
         }
         #[ink(message)]
         pub fn exists_user(&self,user:AccountId) -> bool {
-            let user_info = User{id:0,nickname:String::from(""),profile:String::from(""),code:0,address:AccountId::default(),referer:AccountId::default(),childs:Vec::new()};
-            // let exists_user =  self.user_info.get(&user).unwrap();
+            let user_info = User{
+                id:0,
+                nickname:String::from(""),
+                profile:String::from(""),
+                code:0,
+                address:AccountId::default(),
+                referer:AccountId::default(),
+                childs:Vec::new()
+            };
             let exists_user =  self.user_info.get(&user).unwrap_or(&user_info);
             return exists_user.id !=0 ;
         }
