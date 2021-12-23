@@ -27,8 +27,8 @@ npm install -g binaryen
 First of all you need to clone the repository, run:
 
 ```bash
-git clone aa
-cd SubsCrypt-ink
+git clone https://github.com/RainbowDAO/RainbowDAO-Protocol-Ink-Test-Version-01.git
+cd RainbowDAO-Protocol-Ink-Test-Version-01
 ```
 
 Then, You can enter any folder and enter the following command.
