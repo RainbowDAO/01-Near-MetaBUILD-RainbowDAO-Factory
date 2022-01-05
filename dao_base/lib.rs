@@ -7,6 +7,19 @@ pub use self::dao_base::DaoBase;
 mod dao_base {
 
     use alloc::string::String;
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
+
+    pub struct DisplayDaoBaseInfo {
+        owner: AccountId,
+        name: String,
+        logo: String,
+        desc: String,
+    }
+
     #[ink(storage)]
     pub struct DaoBase {
         owner: AccountId,
@@ -36,15 +49,35 @@ mod dao_base {
             self.name = String::from(name);
         }
         #[ink(message)]
+        pub fn get_name(&self) -> String{
+            self.name.clone()
+        }
+        #[ink(message)]
         pub fn set_logo(&mut self, logo: String) {
             self.logo = String::from(logo);
+        }
+        #[ink(message)]
+        pub fn get_logo(&self) -> String{
+            self.logo.clone()
         }
         #[ink(message)]
         pub fn set_desc(&mut self, desc: String) {
             self.desc = String::from(desc);
         }
+        #[ink(message)]
+        pub fn get_desc(&self) ->String{
+            self.desc.clone()
+        }
 
-
+        #[ink(message)]
+        pub fn get_base_info(&self) ->DisplayDaoBaseInfo{
+            DisplayDaoBaseInfo{
+                owner: self.owner,
+                name: self.name.clone(),
+                logo: self.logo.clone(),
+                desc: self.desc.clone(),
+            }
+        }
 
 
     }

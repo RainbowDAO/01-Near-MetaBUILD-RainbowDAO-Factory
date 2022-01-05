@@ -74,10 +74,12 @@ mod dao_manager {
 
     #[ink(storage)]
     pub struct DAOManager {
+        creator:AccountId,
         owner: AccountId,
         template: Option<DAOTemplate>,
         active: bool,
         dao_id:u64,
+        controller_type:u32,
         components: DAOComponents,
         component_addrs: DAOComponentAddrs,
     }
@@ -85,12 +87,14 @@ mod dao_manager {
     impl DAOManager {
         /// Create a new dao
         #[ink(constructor)]
-        pub fn new(owner:AccountId,dao_id:u64) -> Self {
+        pub fn new(creator:AccountId,owner:AccountId,dao_id:u64,controller_type:u32) -> Self {
             Self {
+                creator,
                 owner,
                 template:None,
                 active:false,
                 dao_id,
+                controller_type,
                 components:DAOComponents {
                     base: None
                 },
@@ -114,11 +118,10 @@ mod dao_manager {
             assert_eq!(self.active, false);
             assert_eq!(self.template.is_some(), true);
             let owner = self.env().caller();
-            assert_eq!(owner == self.owner, true);
+            assert_eq!(owner == self.creator, true);
             let components_hash_map = self.template.as_ref().unwrap().components.clone();
             let base_code_hash = components_hash_map.get("BASE");
             self._init_base(base_code_hash, params.base, &salt);
-
 
 
             true

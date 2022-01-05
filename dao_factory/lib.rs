@@ -96,7 +96,7 @@ mod dao_factory {
             true
         }
 
-        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,version: u8) -> bool {
+        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,controller_type:u32) -> bool {
             assert_eq!(self.instance_index + 1 > self.instance_index, true);
             // let total_balance = Self::env().balance();
             // assert_eq!(total_balance >= 20, true);
@@ -104,8 +104,8 @@ mod dao_factory {
             // instance dao_manager
             let template = self.query_template_by_index(index);
             let dao_manager_code_hash = template.dao_manager_code_hash;
-            let salt = version.to_le_bytes();
-            let dao_instance_params = DAOManager::new(controller, self.instance_index)
+            let salt = self.instance_index.to_le_bytes();
+            let dao_instance_params = DAOManager::new(self.env().caller(),controller, self.instance_index)
                 .endowment(DAO_INIT_BALANCE)
                 .code_hash(dao_manager_code_hash)
                 .salt_bytes(salt)
