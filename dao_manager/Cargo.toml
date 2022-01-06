@@ -16,6 +16,8 @@ scale = { package = "parity-scale-codec", version = "2.1", default-features = fa
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
 template_manager = { version = "0.1.0", path = "../template_manager", default-features = false, features = ["ink-as-dependency"] }
 dao_base = { version = "0.1.0", path = "../dao_base", default-features = false, features = ["ink-as-dependency"] }
+erc20 = { version = "0.1.0", path = "../erc20", default-features = false, features = ["ink-as-dependency"] }
+dao_users = { version = "0.1.0", path = "../dao_users", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 name = "dao_manager"
@@ -36,6 +38,8 @@ std = [
     "ink_prelude/std",
     "template_manager/std",
     "dao_base/std",
+    "dao_users/std",
+    "erc20/std",
     "scale/std",
     "scale-info/std",
 ]

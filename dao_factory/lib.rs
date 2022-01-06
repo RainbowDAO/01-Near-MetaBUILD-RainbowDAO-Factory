@@ -49,6 +49,7 @@ mod dao_factory {
         instance_index:u64,
         instance_map: StorageHashMap<u64, DAOInstance>,
         instance_map_by_owner: StorageHashMap<AccountId, Vec<u64>>,
+        route_addr:AccountId
     }
 
 
@@ -66,7 +67,7 @@ mod dao_factory {
     impl DaoFactory {
         /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
-        pub fn new() -> Self {
+        pub fn new(route_addr:AccountId) -> Self {
             Self {
                 owner: Self::env().caller(),
                 template_addr: None,
@@ -74,6 +75,7 @@ mod dao_factory {
                 instance_index:0,
                 instance_map: StorageHashMap::new(),
                 instance_map_by_owner: StorageHashMap::new(),
+                route_addr
             }
         }
 
@@ -90,13 +92,12 @@ mod dao_factory {
             let init_result = ink_env::instantiate_contract(&instance_params);
             let contract_addr = init_result.expect("failed at instantiating the `TemplateManager` contract");
             let contract_instance = ink_env::call::FromAccountId::from_account_id(contract_addr);
-
             self.template = Some(contract_instance);
             self.template_addr = Some(contract_addr);
             true
         }
 
-        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,controller_type:u32) -> bool {
+        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,controller_type:u32,category:String) -> bool {
             assert_eq!(self.instance_index + 1 > self.instance_index, true);
             // let total_balance = Self::env().balance();
             // assert_eq!(total_balance >= 20, true);
@@ -105,7 +106,7 @@ mod dao_factory {
             let template = self.query_template_by_index(index);
             let dao_manager_code_hash = template.dao_manager_code_hash;
             let salt = self.instance_index.to_le_bytes();
-            let dao_instance_params = DAOManager::new(self.env().caller(),controller, self.instance_index)
+            let dao_instance_params = DAOManager::new(self.env().caller(),controller, self.instance_index,controller_type)
                 .endowment(DAO_INIT_BALANCE)
                 .code_hash(dao_manager_code_hash)
                 .salt_bytes(salt)

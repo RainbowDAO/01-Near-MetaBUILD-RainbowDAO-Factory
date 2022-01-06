@@ -9,14 +9,16 @@ mod dao_manager {
     use alloc::string::String;
     use template_manager::DAOTemplate;
     use dao_base::DaoBase;
+    use dao_users::DaoUsers;
+    use erc20::Erc20;
     use ink_prelude::vec::Vec;
     use ink_prelude::collections::BTreeMap;
     use ink_storage::{
-        // collections::HashMap as StorageHashMap,
+        collections::HashMap as StorageHashMap,
         traits::{PackedLayout, SpreadLayout},
     };
 
-    const CONTRACT_INIT_BALANCE: u128 = 100 * 1000 * 1_000_000_000_000;
+    const CONTRACT_INIT_BALANCE: u128 = 1000 * 1_000_000_000_000;
 
 
     /// DAO component instances
@@ -27,8 +29,11 @@ mod dao_manager {
     )]
     pub struct DAOComponents {
         pub base: Option<DaoBase>,
+        pub erc20:Option<Erc20>,
+        pub dao_users:Option<DaoUsers>
         //    github: Option<Github>,
     }
+
 
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
@@ -43,7 +48,6 @@ mod dao_manager {
         logo: String,
         desc: String,
     }
-
     /// DAO component instance addresses
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
@@ -67,7 +71,23 @@ mod dao_manager {
     )]
     pub struct DAOComponentAddrs {
         // base module contract's address
-        pub base_addr: Option<AccountId>
+        pub base_addr: Option<AccountId>,
+        pub erc20_addr: Option<AccountId>,
+        pub dao_users_addr: Option<AccountId>,
+    }
+    #[derive(
+    Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
+    )]
+    #[cfg_attr(
+    feature = "std",
+    derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
+    )]
+    pub struct ERC20Param {
+        owner: AccountId,
+        name: String,
+        symbol: String,
+        total_supply: u64,
+        decimals: u8,
     }
 
 
@@ -82,12 +102,13 @@ mod dao_manager {
         controller_type:u32,
         components: DAOComponents,
         component_addrs: DAOComponentAddrs,
+        category:String
     }
 
     impl DAOManager {
         /// Create a new dao
         #[ink(constructor)]
-        pub fn new(creator:AccountId,owner:AccountId,dao_id:u64,controller_type:u32) -> Self {
+        pub fn new(creator:AccountId,owner:AccountId,dao_id:u64,controller_type:u32,category:String) -> Self {
             Self {
                 creator,
                 owner,
@@ -96,11 +117,16 @@ mod dao_manager {
                 dao_id,
                 controller_type,
                 components:DAOComponents {
-                    base: None
+                    base: None,
+                    erc20:None,
+                    dao_users:None
                 },
                 component_addrs:DAOComponentAddrs{
-                    base_addr:None
-                }
+                    base_addr:None,
+                    erc20_addr:None,
+                    dao_users_addr:None
+                },
+                category
             }
         }
 
@@ -112,6 +138,8 @@ mod dao_manager {
             true
         }
 
+
+
         /// Initialize Dao and generate various
         #[ink(message)]
         pub fn  init_by_params(&mut self, params: DAOInitParams, salt: Vec<u8>) -> bool {
@@ -121,8 +149,10 @@ mod dao_manager {
             assert_eq!(owner == self.creator, true);
             let components_hash_map = self.template.as_ref().unwrap().components.clone();
             let base_code_hash = components_hash_map.get("BASE");
+            let erc20_code_hash = components_hash_map.get("ERC20");
+            let user_code_hash = components_hash_map.get("USER");
             self._init_base(base_code_hash, params.base, &salt);
-
+            self._init_erc20(erc20_code_hash, params.erc20, &salt);
 
             true
         }
@@ -151,6 +181,53 @@ mod dao_manager {
             self.components.base = Some(contract_instance);
             self.component_addrs.base_addr = Some(contract_addr);
 
+            true
+        }
+        /// init user
+        fn _init_user(&mut self,user_code_hash:Option<&Hash>,salt: &Vec<u8>) -> bool {
+            if user_code_hash.is_none() {
+                return true;
+            }
+            let user_code_hash = user_code_hash.unwrap().clone();
+            let total_balance = Self::env().balance();
+            assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
+            // let vault_addr = self.component_addrs.vault_addr.unwrap();
+            let user_instance_params = DaoUsers::new()
+                .endowment(CONTRACT_INIT_BALANCE)
+                .code_hash(user_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let user_init_result = ink_env::instantiate_contract(&user_instance_params);
+            let user_addr = user_init_result.expect("failed at instantiating the `Erc20` contract");
+            let mut user_instance: DaoUsers = ink_env::call::FromAccountId::from_account_id(user_addr);
+            self.components.dao_users = Some(user_instance);
+            self.component_addrs.dao_users_addr = Some(user_addr);
+            true
+        }
+
+
+
+        /// init erc20
+        fn _init_erc20(&mut self, erc20_code_hash: Option<&Hash>,
+                       param: ERC20Param, salt: &Vec<u8>) -> bool {
+            if erc20_code_hash.is_none() {
+                return true;
+            }
+            let erc20_code_hash = erc20_code_hash.unwrap().clone();
+            let total_balance = Self::env().balance();
+            assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
+            // let vault_addr = self.component_addrs.vault_addr.unwrap();
+            let erc20_instance_params = Erc20::new(param.total_supply,param.name,
+                                                   param.symbol, param.decimals, param.owner)
+                .endowment(CONTRACT_INIT_BALANCE)
+                .code_hash(erc20_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let erc20_init_result = ink_env::instantiate_contract(&erc20_instance_params);
+            let erc20_addr = erc20_init_result.expect("failed at instantiating the `Erc20` contract");
+            let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(erc20_addr);
+            self.components.erc20 = Some(erc20_instance);
+            self.component_addrs.erc20_addr = Some(erc20_addr);
             true
         }
 
