@@ -10,6 +10,7 @@ mod dao_manager {
     use template_manager::DAOTemplate;
     use dao_base::DaoBase;
     use dao_users::DaoUsers;
+    use dao_setting::DaoSetting;
     use erc20::Erc20;
     use ink_prelude::vec::Vec;
     use ink_prelude::collections::BTreeMap;
@@ -30,7 +31,8 @@ mod dao_manager {
     pub struct DAOComponents {
         pub base: Option<DaoBase>,
         pub erc20:Option<Erc20>,
-        pub dao_users:Option<DaoUsers>
+        pub dao_users:Option<DaoUsers>,
+        pub dao_setting:Option<DaoSetting>
         //    github: Option<Github>,
     }
 
@@ -57,7 +59,8 @@ mod dao_manager {
     derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
     )]
     pub struct DAOInitParams {
-        base: BaseParam
+        base: BaseParam,
+        erc20:ERC20Param,
     }
 
 
@@ -74,6 +77,7 @@ mod dao_manager {
         pub base_addr: Option<AccountId>,
         pub erc20_addr: Option<AccountId>,
         pub dao_users_addr: Option<AccountId>,
+        pub dao_setting_addr: Option<AccountId>,
     }
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
@@ -119,12 +123,14 @@ mod dao_manager {
                 components:DAOComponents {
                     base: None,
                     erc20:None,
-                    dao_users:None
+                    dao_users:None,
+                    dao_setting:None,
                 },
                 component_addrs:DAOComponentAddrs{
                     base_addr:None,
                     erc20_addr:None,
-                    dao_users_addr:None
+                    dao_users_addr:None,
+                    dao_setting_addr:None
                 },
                 category
             }
@@ -151,9 +157,32 @@ mod dao_manager {
             let base_code_hash = components_hash_map.get("BASE");
             let erc20_code_hash = components_hash_map.get("ERC20");
             let user_code_hash = components_hash_map.get("USER");
+            let setting_code_hash = components_hash_map.get("SETTING");
             self._init_base(base_code_hash, params.base, &salt);
             self._init_erc20(erc20_code_hash, params.erc20, &salt);
+            self._init_user(user_code_hash, &salt);
 
+            true
+        }
+
+        /// init setting
+        fn _init_setting(&mut self, setting_code_hash: Option<&Hash>, salt: &Vec<u8>) -> bool {
+            if setting_code_hash.is_none() {
+                return true;
+            }
+            let setting_code_hash = setting_code_hash.unwrap().clone();
+            let total_balance = Self::env().balance();
+            assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
+            let setting_instance_params = DaoSetting::new(self.env().caller())
+                .endowment(CONTRACT_INIT_BALANCE)
+                .code_hash(setting_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let setting_init_result = ink_env::instantiate_contract(&setting_instance_params);
+            let setting_addr = setting_init_result.expect("failed at instantiating the `setting` contract");
+            let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(setting_addr);
+            self.components.dao_setting = Some(setting_instance);
+            self.component_addrs.dao_setting_addr = Some(setting_addr);
             true
         }
 
@@ -192,13 +221,13 @@ mod dao_manager {
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             // let vault_addr = self.component_addrs.vault_addr.unwrap();
-            let user_instance_params = DaoUsers::new()
+            let user_instance_params = DaoUsers::new(self.component_addrs.dao_setting_addr)
                 .endowment(CONTRACT_INIT_BALANCE)
                 .code_hash(user_code_hash)
                 .salt_bytes(salt)
                 .params();
             let user_init_result = ink_env::instantiate_contract(&user_instance_params);
-            let user_addr = user_init_result.expect("failed at instantiating the `Erc20` contract");
+            let user_addr = user_init_result.expect("failed at instantiating the `user` contract");
             let mut user_instance: DaoUsers = ink_env::call::FromAccountId::from_account_id(user_addr);
             self.components.dao_users = Some(user_instance);
             self.component_addrs.dao_users_addr = Some(user_addr);

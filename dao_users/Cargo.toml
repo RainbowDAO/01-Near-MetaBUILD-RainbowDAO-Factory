@@ -13,7 +13,7 @@ ink_storage = { version = "3.0.0-rc3", path = "../ink/crates/storage", default-f
 ink_lang = { version = "3.0.0-rc3", path = "../ink/crates/lang", default-features = false }
 scale = { package = "parity-scale-codec", version = "2.1", default-features = false, features = ["derive"] }
 scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
-
+dao_setting = { version = "0.1.0", path = "../dao_setting", default-features = false, features = ["ink-as-dependency"] }
 [lib]
 name = "dao_users"
 path = "lib.rs"
@@ -29,6 +29,7 @@ std = [
     "ink_env/std",
     "ink_prelude/std",
     "ink_storage/std",
+    "dao_setting/std",
     "ink_primitives/std",
     "scale/std",
     "scale-info/std",

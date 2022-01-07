@@ -18,6 +18,7 @@ template_manager = { version = "0.1.0", path = "../template_manager", default-fe
 dao_base = { version = "0.1.0", path = "../dao_base", default-features = false, features = ["ink-as-dependency"] }
 erc20 = { version = "0.1.0", path = "../erc20", default-features = false, features = ["ink-as-dependency"] }
 dao_users = { version = "0.1.0", path = "../dao_users", default-features = false, features = ["ink-as-dependency"] }
+dao_setting = { version = "0.1.0", path = "../dao_setting", default-features = false, features = ["ink-as-dependency"] }
 
 [lib]
 name = "dao_manager"
@@ -39,6 +40,7 @@ std = [
     "template_manager/std",
     "dao_base/std",
     "dao_users/std",
+    "dao_setting/std",
     "erc20/std",
     "scale/std",
     "scale-info/std",
