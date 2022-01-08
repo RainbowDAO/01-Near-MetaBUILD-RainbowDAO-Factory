@@ -50,7 +50,11 @@ mod dao_users {
             let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(setting_addr);
             let condition =  setting_instance.get_conditions();
             if condition == 2 {
-                // let fee_limit - setting_instance.get
+                let fee_limit = setting_instance.get_fee_setting();
+                let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(fee_limit.token);
+                assert_eq!(erc20_instance.balance_of(self.env().caller()) >= fee_limit.fee_limit, true);
+                erc20_instance.transfer_from(Self::env().caller(),AccountId::default(),fee_limit.fee_limit); //todo 修改打入地址
+                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
             }
         }
         #[ink(message)]

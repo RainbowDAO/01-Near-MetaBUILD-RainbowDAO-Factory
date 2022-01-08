@@ -6,6 +6,7 @@ use ink_lang as ink;
 mod dao_setting {
     use alloc::string::String;
     use ink_prelude::vec::Vec;
+    use erc20::Erc20;
     use ink_prelude::collections::BTreeMap;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
