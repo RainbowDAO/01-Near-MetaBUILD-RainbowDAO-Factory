@@ -33,6 +33,8 @@ mod dao_setting {
     derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
     )]
     pub struct OtherConditions {
+        use_token:bool,
+        use_nft:bool,
         token:AccountId,
         token_balance_limit:u128,
         nft:AccountId,

@@ -55,6 +55,20 @@ mod dao_users {
                 assert_eq!(erc20_instance.balance_of(self.env().caller()) >= fee_limit.fee_limit, true);
                 erc20_instance.transfer_from(Self::env().caller(),AccountId::default(),fee_limit.fee_limit); //todo 修改打入地址
                 self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
+            } else if condition == 4 {
+                let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(fee_limit.token);
+                let other_limit = setting_instance.get_other_setting();
+                if other_limit.use_token {
+                    assert_eq!(erc20_instance.balance_of(self.env().caller()) >= other_limit.token_balance_limit, true);
+                }
+                if other_limit.use_nft {
+
+                }
+                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
+            }else if condition == 6 {
+
+            }else{
+                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
             }
         }
         #[ink(message)]
