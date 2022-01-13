@@ -106,7 +106,7 @@ mod dao_manager {
         controller_type:u32,
         components: DAOComponents,
         component_addrs: DAOComponentAddrs,
-        category:String
+        category:String,
     }
 
     impl DAOManager {
@@ -143,8 +143,6 @@ mod dao_manager {
             self.template = Some(template);
             true
         }
-
-
 
         /// Initialize Dao and generate various
         #[ink(message)]

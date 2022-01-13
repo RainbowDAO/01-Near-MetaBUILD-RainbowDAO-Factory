@@ -27,14 +27,29 @@ mod dao_users {
         expire_time:u128,
         role:u64
     }
+    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
 
+    #[derive(Debug)]
+    pub struct Group {
+        id:u128,
+        name:String,
+        join_directly:bool,
+        is_open:bool,
+        users:Vec<AccountId>
+    }
 
     #[ink(storage)]
     pub struct DaoUsers {
        user:StorageHashMap<AccountId,User>,
        // user_referer:StorageHashMap<AccountId,AccountId>,
        // length:u128,
-       setting_addr:AccountId
+       setting_addr:AccountId,
+        // group:
     }
 
     impl DaoUsers {

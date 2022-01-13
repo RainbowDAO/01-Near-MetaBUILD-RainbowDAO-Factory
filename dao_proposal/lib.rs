@@ -71,6 +71,35 @@ mod dao_proposal {
         executed: bool,
         receipts: BTreeMap<AccountId, Receipt>,
         transaction: Transaction,
+        category:u32,
+        publicity_votes:u128,
+        publicity_delay:u32
+    }
+
+    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
+    #[derive(Debug)]
+    pub struct Limit {
+        fee_open:bool,
+        fee_number:u128,
+        fee_token:AccountId
+    }
+    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
+    )]
+    #[derive(Debug)]
+    pub struct VoteEffective {
+        category:u32,
+        vote_scale:u32,
+        entrust_scale:u32,
+        support_scale:u32
     }
 
     /// Indicates whether a transaction is already confirmed or needs further confirmations.
@@ -112,11 +141,13 @@ mod dao_proposal {
         Succeeded,
         Executed,
         Expired,
+        Publicity,
         Queued,
     }
 
     #[ink(storage)]
     pub struct DaoProposal {
+        creator:AccountId,
         owner: AccountId,
         proposals: StorageHashMap<u64, Proposal>,
         voting_delay: u32,
@@ -124,12 +155,15 @@ mod dao_proposal {
         proposal_length: u64,
         route_addr: AccountId,
         erc20_addr: AccountId,
+        limit:Option<Limit>,
+        vote_effective:Option<VoteEffective>
     }
 
     impl DaoProposal {
         #[ink(constructor)]
-        pub fn new(route_addr: AccountId, erc20_addr: AccountId) -> Self {
+        pub fn new(creator:AccountId,route_addr: AccountId, erc20_addr: AccountId) -> Self {
             Self {
+                creator,
                 owner: Self::env().caller(),
                 proposals: StorageHashMap::new(),
                 voting_delay: 1,
@@ -137,16 +171,49 @@ mod dao_proposal {
                 proposal_length: 0,
                 route_addr,
                 erc20_addr,
+                limit:None,
+                vote_effective:None
             }
         }
 
+        /// Set requirements for initiating proposals
         #[ink(message)]
-        pub fn propose(&mut self, title: String, desc: String, transaction: Transaction) -> bool {
-            let start_block = self.env().block_number() + self.voting_delay;
-            let end_block = start_block + self.voting_period;
+        pub fn set_permission(&mut self,limit:Limit) -> bool {
+            assert!(self.env().caller() != self.creator);
+            self.limit = limit;
+        }
+        /// Set the conditions for successful proposal
+        #[ink(message)]
+        pub fn set_vote_effective(&mut self,vote_effective:VoteEffective) -> bool {
+            assert!(self.env().caller() != self.creator);
+            self.vote_effective = vote_effective;
+        }
+
+
+        #[ink(message)]
+        pub fn propose(
+            &mut self,
+            title: String,
+            desc: String,
+            category:u32,
+            start_block:u32,
+            end_block:u32,
+            transaction: Transaction,
+            publicity_delay:u32,
+        ) -> bool {
+            assert!(start_block > self.env().block_number());
+            assert!(end_block > start_block);
+            let limit = self.limit;
+            if limit.fee_open {
+                let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(limit.fee_token);
+                //todo change this account address to vault
+                erc20_instance.transfer_from(Self::env().caller(),AccountId::default(),limit.fee_number);
+            }
+
             let proposal_id = self.proposal_length.clone() + 1;
             self.proposal_length += 1;
             let proposal_info = Proposal {
+                category,
                 proposal_id,
                 title,
                 desc,
@@ -159,6 +226,8 @@ mod dao_proposal {
                 executed: false,
                 receipts: BTreeMap::new(),
                 transaction,
+                publicity_votes:0,
+                publicity_delay
             };
             self.proposals.insert(proposal_id, proposal_info);
             self.env().emit_event(ProposalCreated {
@@ -170,13 +239,30 @@ mod dao_proposal {
         #[ink(message)]
         pub fn state(&self, proposal_id: u64) -> ProposalState {
             let block_number = self.env().block_number();
+            let effective:VoteEffective = self.vote_effective;
+            let mut failed = false;
+            let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.erc20_addr);
+            let token_info = erc20_instance.query_info();
+            let all_vote = proposal.for_votes + proposal.against_votes;
+            if effective.category == 1 {
+                if all_vote / token_info.total_supply * 100 <= effective.vote_scale {
+                    failed = true;
+                }
+            }else if effective.category == 3 {
+                if proposal.for_votes / all_vote * 100 <= effective.support_scale {
+                    failed = true;
+                }
+            }
+
             let proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
             if proposal.canceled { return ProposalState::Canceled; }
             else if block_number <= proposal.start_block { return ProposalState::Pending; }
             else if block_number <= proposal.end_block { return ProposalState::Active; }
-            else if proposal.for_votes <= proposal.against_votes { return ProposalState::Defeated; }
+            else if failed { return ProposalState::Defeated; }
             else if proposal.executed { return ProposalState::Executed; }
             else if block_number > proposal.end_block { return ProposalState::Expired; }
+            else if block_number < proposal.end_block + proposal.publicity_delay { return ProposalState::Publicity; }
+            else if proposal.publicity_votes > proposal.for_votes{ return ProposalState::Defeated; }
             else { return ProposalState::Queued; }
         }
         #[ink(message)]
@@ -207,11 +293,18 @@ mod dao_proposal {
             proposal.executed = true;
             true
         }
-        // #[ink(message)]
-        // pub fn get_contract_addr(&self,target_name:String) ->AccountId {
-        //     let route_instance: RouteManage = ink_env::call::FromAccountId::from_account_id(self.route_addr);
-        //     return route_instance.query_route_by_name(target_name);
-        // }
+        #[ink(message)]
+        pub fn public_vote(&mut self, proposal_id: u64) -> bool {
+            let block_number = self.env().block_number();
+            let caller = Self::env().caller();
+            let mut proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
+            assert!(proposal.end_block < block_number);
+            assert!(proposal.end_block + proposal.publicity_delay > block_number);
+            let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.rbd_addr);
+            let votes = erc20_instance.get_current_votes(caller);
+            proposal.publicity_votes = votes;
+            true
+        }
         #[ink(message)]
         pub fn cast_vote(&mut self, proposal_id: u64, support: bool) -> bool {
             let caller = Self::env().caller();
@@ -220,7 +313,7 @@ mod dao_proposal {
             let mut receipts = proposal.receipts.get(&caller).unwrap().clone();
             assert!(receipts.has_voted == false);
             let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.rbd_addr);
-            let votes = erc20_instance.get_prior_votes(caller, proposal.start_block);
+            let votes = erc20_instance.get_current_votes(caller);
             if support {
                 proposal.for_votes += votes;
             } else {
