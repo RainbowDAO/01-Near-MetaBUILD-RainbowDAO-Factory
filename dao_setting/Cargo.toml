@@ -19,10 +19,7 @@ scale-info = { version = "1.0.0", default-features = false, features = ["derive"
 [lib]
 name = "dao_setting"
 path = "lib.rs"
-crate-type = [
-	# Used for normal contract Wasm blobs.
-	"cdylib",
-]
+crate-type = ["cdylib", "rlib"]
 
 [features]
 default = ["std"]

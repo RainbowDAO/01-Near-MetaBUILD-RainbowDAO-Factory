@@ -6,6 +6,8 @@ mod dao_users {
     use alloc::string::String;
     use ink_prelude::vec::Vec;
     use dao_setting::DaoSetting;
+    use erc20::Erc20;
+    use ink_prelude::collections::BTreeMap;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
         lazy::Lazy,
@@ -40,16 +42,19 @@ mod dao_users {
         name:String,
         join_directly:bool,
         is_open:bool,
-        users:Vec<AccountId>
+        users:BTreeMap<AccountId,bool>,
+        manager:AccountId
     }
 
     #[ink(storage)]
     pub struct DaoUsers {
-       user:StorageHashMap<AccountId,User>,
+         user:StorageHashMap<AccountId,User>,
        // user_referer:StorageHashMap<AccountId,AccountId>,
        // length:u128,
-       setting_addr:AccountId,
-        // group:
+        setting_addr:AccountId,
+        group:StorageHashMap<u128,Group>,
+        user_group:StorageHashMap<(AccountId,u128),bool>,
+        group_index:u128
     }
 
     impl DaoUsers {
@@ -57,15 +62,25 @@ mod dao_users {
         pub fn new(setting_addr:AccountId) -> Self {
             Self {
                 user:StorageHashMap::new(),
-                setting_addr
+                setting_addr,
+                group:StorageHashMap::new(),
+                user_group:StorageHashMap::new(),
+                group_index:0
             }
         }
         #[ink(message)]
+        pub fn add_group(&mut self,group:Group) -> bool {
+            let index = self.group_index.clone() + 1;
+            self.group_index += 1;
+            self.group.insert(index,group);
+            true
+        }
+        #[ink(message)]
         pub fn join(&mut self) ->bool {
-            let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(setting_addr);
+            let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(self.setting_addr);
             let condition =  setting_instance.get_conditions();
+            let fee_limit = setting_instance.get_fee_setting();
             if condition == 2 {
-                let fee_limit = setting_instance.get_fee_setting();
                 let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(fee_limit.token);
                 assert_eq!(erc20_instance.balance_of(self.env().caller()) >= fee_limit.fee_limit, true);
                 erc20_instance.transfer_from(Self::env().caller(),AccountId::default(),fee_limit.fee_limit); //todo 修改打入地址
@@ -85,26 +100,34 @@ mod dao_users {
             }else{
                 self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
             }
+            true
         }
         #[ink(message)]
-        pub fn get_user_referer(&self,user:AccountId) -> AccountId {
-           let user_info : User =  self.user_info.get(&user).unwrap().clone();
-            return user_info.referer;
-        }
-        #[ink(message)]
-        pub fn exists_user(&self,user:AccountId) -> bool {
-            let user_info = self.user_info.get(&user).unwrap().clone();
-            return user_info.id != 0 ;
+        pub fn verify_user(&mut self,index:u128,user:AccountId) -> bool {
+            let mut group =  self.group.get_mut(&index).unwrap();
+            assert_eq!(group.id > 0, true);
+            group.users.insert(user,true);
+            true
         }
 
         #[ink(message)]
-        pub fn get_user_by_code(&self,invitation_code:[u8; 32]) -> AccountId {
-            self.code_user.get(&invitation_code).unwrap().clone()
+        pub fn join_group(&mut self,index:u128) -> bool {
+            let mut group =  self.group.get_mut(&index).unwrap();
+            let caller = Self::env().caller();
+            assert_eq!(group.id > 0, true);
+            let mut user_group = self.user_group.get_mut(&(caller,index)).unwrap();
+            if group.join_directly == false {
+                group.users.insert(caller,false);
+            }else{
+                group.users.insert(caller,true);
+            }
+            self.user_group.insert((caller,index),true);
+            true
         }
         #[ink(message)]
         pub fn list_user(&self) -> Vec<User> {
             let mut user_vec = Vec::new();
-            let mut iter = self.user_info.values();
+            let mut iter = self.user.values();
             let mut user = iter.next();
             while user.is_some() {
                 user_vec.push(user.unwrap().clone());
@@ -113,28 +136,16 @@ mod dao_users {
             user_vec
         }
         #[ink(message)]
-        pub fn insert_user_child(&mut self,user:AccountId,child:AccountId) -> bool {
-            let mut user_info = self.user_info.get_mut(&user).unwrap().clone();
-            user_info.childs.push(child);
-            true
+        pub fn list_group(&self) -> Vec<Group> {
+            let mut group_vec = Vec::new();
+            let mut iter = self.group.values();
+            let mut group = iter.next();
+            while group.is_some() {
+                group_vec.push(group.unwrap().clone());
+                group = iter.next();
+            }
+            group_vec
         }
-        #[ink(message)]
-        pub fn set_nickname(&mut self,nickname:String) -> bool {
-            let caller = self.env().caller();
-            let mut user_info : User =  self.user_info.get_mut(&caller).unwrap().clone();
-            user_info.nickname = nickname;
-            true
-        }
-
-
-        // fn create_code(&self) -> String {
-        //     let s: String = rand::thread_rng()
-        //         .sample_iter(&Alphanumeric)
-        //         .take(7)
-        //         .map(char::from)
-        //         .collect();
-        //     return s
-        // }
     }
 
 

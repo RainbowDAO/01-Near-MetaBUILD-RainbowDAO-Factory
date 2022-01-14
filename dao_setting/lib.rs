@@ -1,12 +1,13 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
 use ink_lang as ink;
-
+pub use self::dao_setting::{
+    DaoSetting
+};
 #[ink::contract]
 mod dao_setting {
     use alloc::string::String;
     use ink_prelude::vec::Vec;
-    use erc20::Erc20;
     use ink_prelude::collections::BTreeMap;
     use ink_storage::{
         collections::HashMap as StorageHashMap,
@@ -21,9 +22,9 @@ mod dao_setting {
     derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
     )]
     pub struct FeeConditions {
-        time_limit:u128,
-        fee_limit:u128,
-        token:AccountId
+        pub  time_limit:u128,
+        pub  fee_limit:u128,
+        pub  token:AccountId
     }
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
@@ -33,20 +34,20 @@ mod dao_setting {
     derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
     )]
     pub struct OtherConditions {
-        use_token:bool,
-        use_nft:bool,
-        token:AccountId,
-        token_balance_limit:u128,
-        nft:AccountId,
-        nft_balance_limit:u128,
-        nft_time_limit:u128
+        pub use_token:bool,
+        pub use_nft:bool,
+        pub token:AccountId,
+        pub token_balance_limit:u128,
+        pub nft:AccountId,
+        pub nft_balance_limit:u128,
+        pub nft_time_limit:u128
     }
     #[ink(storage)]
     pub struct DaoSetting {
         creator:AccountId,
         owner:AccountId,
-        fee_limit:Option<FeeConditions>,
-        other_limit:Option<OtherConditions>,
+        fee_limit:FeeConditions,
+        other_limit:OtherConditions,
         conditions : u64,
     }
 
@@ -57,8 +58,20 @@ mod dao_setting {
             Self {
                 creator,
                 owner:Self::env().caller(),
-                fee_limit:None,
-                other_limit:None,
+                fee_limit:FeeConditions{
+                    time_limit:0,
+                    fee_limit:0,
+                    token:AccountId::default()
+                },
+                other_limit:OtherConditions{
+                    use_token:false,
+                    use_nft:false,
+                    token:AccountId::default(),
+                    token_balance_limit:0,
+                    nft:AccountId::default(),
+                    nft_balance_limit:0,
+                    nft_time_limit:0
+                },
                 conditions:0,
             }
         }
@@ -68,24 +81,22 @@ mod dao_setting {
             self.conditions
         }
         #[ink(message)]
-        pub fn get_fee_setting(&self) -> &FeeConditions {
-            self.fee_limit.as_ref().unwrap()
-        }
+        pub fn get_fee_setting(&self) -> FeeConditions { self.fee_limit.clone() }
         #[ink(message)]
-        pub fn get_other_setting(&self) -> &OtherConditions {
-            self.other_limit.as_ref().unwrap()
+        pub fn get_other_setting(&self) -> OtherConditions {
+            self.other_limit.clone()
         }
         #[ink(message)]
         pub fn set_join_limit(&mut self,conditions:u64,other_conditions:OtherConditions,fee_conditions:FeeConditions) -> bool {
             let owner = self.env().caller();
             assert_eq!(owner == self.creator, true);
             if conditions == 2 {
-                self.fee_limit = Some(fee_conditions);
+                self.fee_limit = fee_conditions;
             }else if conditions == 4 {
-                self.other_limit = Some(other_conditions);
+                self.other_limit = other_conditions;
             } else if conditions == 6 {
-                self.fee_limit = Some(fee_conditions);
-                self.other_limit = Some(other_conditions);
+                self.fee_limit = fee_conditions;
+                self.other_limit = other_conditions;
             }
             self.conditions = conditions;
 
