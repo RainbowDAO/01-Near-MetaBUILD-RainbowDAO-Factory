@@ -12,6 +12,7 @@ mod dao_manager {
     use dao_users::DaoUsers;
     use dao_setting::DaoSetting;
     use erc20::Erc20;
+    use dao_vault::VaultManager;
     use ink_prelude::vec::Vec;
     use ink_prelude::collections::BTreeMap;
     use ink_storage::{
@@ -23,6 +24,11 @@ mod dao_manager {
 
 
     /// DAO component instances
+    /// base:the instance of base
+    /// erc20:the instance of erc20
+    /// dao_users:the instance of dao_users
+    /// dao_setting:the instance of dao_setting
+    /// vault:the instance of vault
     #[derive(Debug, scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -32,11 +38,12 @@ mod dao_manager {
         pub base: Option<DaoBase>,
         pub erc20:Option<Erc20>,
         pub dao_users:Option<DaoUsers>,
-        pub dao_setting:Option<DaoSetting>
+        pub dao_setting:Option<DaoSetting>,
+        pub vault: Option<VaultManager>,
         //    github: Option<Github>,
     }
 
-
+    ///the base information
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
     )]
@@ -78,6 +85,9 @@ mod dao_manager {
         pub erc20_addr: Option<AccountId>,
         pub dao_users_addr: Option<AccountId>,
         pub dao_setting_addr: Option<AccountId>,
+        // pub vault: Option<VaultManager>,
+        // vote module contract's address
+        pub vault_addr: Option<AccountId>,
     }
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
@@ -120,7 +130,8 @@ mod dao_manager {
         components: DAOComponents,
         component_addrs: DAOComponentAddrs,
         category:String,
-        union:Union
+        union:Union,
+        childs_dao:StorageHashMap<AccountId,Vec<AccountId>>
     }
 
     impl DAOManager {
@@ -134,17 +145,20 @@ mod dao_manager {
                 active:false,
                 dao_id,
                 controller_type,
+                childs_dao:StorageHashMap::new(),
                 components:DAOComponents {
                     base: None,
                     erc20:None,
                     dao_users:None,
                     dao_setting:None,
+                    vault:None,
                 },
                 component_addrs:DAOComponentAddrs{
                     base_addr:None,
                     erc20_addr:None,
                     dao_users_addr:None,
-                    dao_setting_addr:None
+                    dao_setting_addr:None,
+                    vault_addr:None
                 },
                 category,
                 union:Union{
@@ -200,8 +214,10 @@ mod dao_manager {
         }
         /// create a child dao
         #[ink(message)]
-        pub fn create_child_dao(&mut self) -> bool {
+        pub fn create_child_dao(&mut self,dao_id:AccountId,child_dao:AccountId) -> bool {
             self.check_dao_category(String::from("mother"));
+            let list = self.childs_dao.entry(dao_id.clone()).or_insert(Vec::new());
+            list.push(child_dao);
         }
         /// Set the dao use which template
         #[ink(message)]
@@ -212,8 +228,11 @@ mod dao_manager {
         }
 
         /// Initialize Dao and generate various
+        /// params:Generate basic contract information
+        /// version:Random number for generating contract
         #[ink(message)]
-        pub fn  init_by_params(&mut self, params: DAOInitParams, salt: Vec<u8>) -> bool {
+        pub fn  init_by_params(&mut self, params: DAOInitParams, version: u128) -> bool {
+            let salt = version.to_le_bytes();
             assert_eq!(self.active, false);
             assert_eq!(self.template.is_some(), true);
             let owner = self.env().caller();
@@ -223,10 +242,34 @@ mod dao_manager {
             let erc20_code_hash = components_hash_map.get("ERC20");
             let user_code_hash = components_hash_map.get("USER");
             let setting_code_hash = components_hash_map.get("SETTING");
+            let vault_code_hash = components_hash_map.get("VAULT");
             self._init_base(base_code_hash, params.base, &salt);
             self._init_erc20(erc20_code_hash, params.erc20, &salt);
             self._init_user(user_code_hash, &salt);
+            self._init_vault(vault_code_hash, &salt);
 
+            true
+        }
+        /// init vault
+        fn _init_vault(&mut self, vault_code_hash: Option<&Hash>, salt: &Vec<u8>) -> bool {
+            if vault_code_hash.is_none() {
+                return true;
+            }
+            let vault_code_hash = vault_code_hash.unwrap().clone();
+            let total_balance = Self::env().balance();
+            assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
+            // instance org
+            // let salt = version.to_le_bytes();
+            let vault_instance_params = VaultManager::new()
+                .endowment(CONTRACT_INIT_BALANCE)
+                .code_hash(vault_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let vault_init_result = ink_env::instantiate_contract(&vault_instance_params);
+            let vault_addr = vault_init_result.expect("failed at instantiating the `vault` contract");
+            let vault_instance: VaultManager = ink_env::call::FromAccountId::from_account_id(vault_addr);
+            self.components.vault = Some(vault_instance);
+            self.component_addrs.vault_addr = Some(vault_addr);
             true
         }
 
@@ -301,8 +344,6 @@ mod dao_manager {
         fn check_dao_category(&self,category:String) {
             assert!(self.category == category);
         }
-
-
         /// init erc20
         fn _init_erc20(&mut self, erc20_code_hash: Option<&Hash>,
                        param: ERC20Param, salt: &Vec<u8>) -> bool {

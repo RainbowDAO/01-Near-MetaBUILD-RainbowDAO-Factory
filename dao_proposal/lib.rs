@@ -26,10 +26,6 @@ mod dao_proposal {
         collections::HashMap as StorageHashMap,
     };
     use scale::Output;
-
-    /// A wrapper that allows us to encode a blob of bytes.
-  ///
-  /// We use this to pass the set of untyped (bytes) parameters to the `CallBuilder`.
     struct CallInput<'a>(&'a [u8]);
 
     impl<'a> scale::Encode for CallInput<'a> {
@@ -38,7 +34,10 @@ mod dao_proposal {
         }
     }
 
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    /// The Voting details of a person
+    /// has_voted:Whether to vote
+    /// support:Is it supported
+    /// votes:Number of votes cast
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -51,7 +50,18 @@ mod dao_proposal {
         votes: u128,
     }
 
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+     /// Details of the proposal
+     /// proposal_id:proposal's id
+     /// title:proposal's title
+     /// desc:proposal's content
+     /// start_block:proposal's start block
+     /// end_block:proposal's end block
+     /// for_votes:Number of support votes
+     /// against_votes:Number of against votes
+     /// canceled:it is cancel
+     /// executed:it is executed
+     /// receipts:Voting details
+     /// transaction:Proposal implementation details
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -76,7 +86,10 @@ mod dao_proposal {
         publicity_delay:u32
     }
 
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    ///Restrictions on initiating proposals
+    ///fee_open:Open charge limit
+    ///fee_number:Charge quantity
+    ///fee_token:Charging token
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -88,7 +101,11 @@ mod dao_proposal {
         fee_number:u128,
         fee_token:AccountId
     }
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    /// Voting validity settings
+    /// category:the category of the settings
+    /// vote_scale:Voting rate setting
+    /// entrust_scale:Entrust rate setting
+    /// support_scale:Support rate setting
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",

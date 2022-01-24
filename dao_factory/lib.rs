@@ -22,6 +22,14 @@ mod dao_factory {
     const TEMPLATE_INIT_BALANCE: u128 = 1000 * 1000 * 1_000_000_000_000;
     const DAO_INIT_BALANCE: u128 = 1000 * 1000 * 1_000_000_000_000;
 
+    ///Initialization information of Dao
+    /// owner:the manager of the dao
+    /// size:the size of the dao
+    /// name:the name of the dao
+    /// logo:the logo of the dao
+    /// desc:the introduce of the dao
+    /// dao_manager:the object of the dao
+    /// dao_manager_addr:the address of the dao
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -38,7 +46,14 @@ mod dao_factory {
         dao_manager: DAOManager,
         dao_manager_addr: AccountId,
     }
-
+    ///This is the factory contract used to generate Dao
+    ///owner:the manager of the contract
+    ///template_addr:the template's address of the dao
+    ///template:the template's object of the dao
+    ///instance_index:the instance index of  all dao
+    ///instance_map:HashMap of index and DAOInstance
+    ///instance_map_by_owner:HashMap of user and address
+    ///route_addr:the router address
     #[ink(storage)]
     pub struct DaoFactory {
         owner: AccountId,
@@ -62,7 +77,6 @@ mod dao_factory {
     }
 
     impl DaoFactory {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new(route_addr:AccountId) -> Self {
             Self {
@@ -76,8 +90,11 @@ mod dao_factory {
             }
         }
 
+        ///Initialize factory contract
+        ///template_code_hash:the hash of the template contract
+        ///version:The random number used to generate the contract
         #[ink(message)]
-        pub fn  init_factory (&mut self, template_code_hash: Hash, version:u8) -> bool
+        pub fn  init_factory (&mut self, template_code_hash: Hash, version:u128) -> bool
         {
             // instance template_manager
             let salt = version.to_le_bytes();
@@ -93,12 +110,15 @@ mod dao_factory {
             self.template_addr = Some(contract_addr);
             true
         }
-
+        ///Generate a Dao through a template
+        ///index:the index of the template
+        ///controller:the manager of the dao
+        ///controller_type:the manager's category of the dao
+        ///category:the category of the dao
         pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,controller_type:u32,category:String) -> bool {
             assert_eq!(self.instance_index + 1 > self.instance_index, true);
             // let total_balance = Self::env().balance();
             // assert_eq!(total_balance >= 20, true);
-
             // instance dao_manager
             let template = self.query_template_by_index(index);
             let dao_manager_code_hash = template.dao_manager_code_hash;
@@ -133,7 +153,8 @@ mod dao_factory {
             self.instance_index += 1;
             true
         }
-
+        ///Find templates through index
+        ///index:the index of template
         #[ink(message)]
         pub fn query_template_by_index(&self, index: u64) -> DAOTemplate {
             self.template.as_ref().unwrap().query_template_by_index(index)
