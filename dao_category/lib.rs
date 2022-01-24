@@ -2,6 +2,7 @@
 extern crate alloc;
 use ink_lang as ink;
 
+#[allow(unused_imports)]
 #[ink::contract]
 mod dao_category {
 
@@ -10,19 +11,15 @@ mod dao_category {
     use ink_prelude::collections::BTreeMap;
     use ink_storage::{collections::HashMap as StorageHashMap, };
 
-    /// Defines the storage of your contract.
-    /// Add new fields to the below struct in order
-    /// to add new static storage fields to your contract.
+    /// the contract store the category of dao
     #[ink(storage)]
     pub struct DaoCategory {
-        /// Stores a single `bool` value on the storage.
         owner: AccountId,
         category_map:StorageHashMap<u64,String>,
         index:u64
     }
 
     impl DaoCategory {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new() -> Self {
             Self {

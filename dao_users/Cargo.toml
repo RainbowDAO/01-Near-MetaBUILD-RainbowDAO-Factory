@@ -20,8 +20,9 @@ erc20 = { version = "0.1.0", path = "../erc20", default-features = false, featur
 name = "dao_users"
 path = "lib.rs"
 crate-type = [
-	# Used for normal contract Wasm blobs.
-	"cdylib",
+    # Used for normal contract Wasm blobs.
+    "cdylib",
+    "rlib",
 ]
 
 [features]

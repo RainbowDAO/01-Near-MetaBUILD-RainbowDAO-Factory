@@ -97,9 +97,9 @@ mod dao_proposal {
     #[derive(Debug)]
     pub struct VoteEffective {
         category:u32,
-        vote_scale:u32,
-        entrust_scale:u32,
-        support_scale:u32
+        vote_scale:u128,
+        entrust_scale:u128,
+        support_scale:u128
     }
 
     /// Indicates whether a transaction is already confirmed or needs further confirmations.
@@ -155,8 +155,8 @@ mod dao_proposal {
         proposal_length: u64,
         route_addr: AccountId,
         erc20_addr: AccountId,
-        limit:Option<Limit>,
-        vote_effective:Option<VoteEffective>
+        limit:Limit,
+        vote_effective:VoteEffective
     }
 
     impl DaoProposal {
@@ -171,8 +171,17 @@ mod dao_proposal {
                 proposal_length: 0,
                 route_addr,
                 erc20_addr,
-                limit:None,
-                vote_effective:None
+                limit:Limit{
+                    fee_open:false,
+                    fee_number:1,
+                    fee_token:AccountId::default()
+                },
+                vote_effective:VoteEffective{
+                    category:0,
+                    vote_scale:0,
+                    entrust_scale:0,
+                    support_scale:0
+                }
             }
         }
 
@@ -181,12 +190,15 @@ mod dao_proposal {
         pub fn set_permission(&mut self,limit:Limit) -> bool {
             assert!(self.env().caller() != self.creator);
             self.limit = limit;
+
+            true
         }
         /// Set the conditions for successful proposal
         #[ink(message)]
         pub fn set_vote_effective(&mut self,vote_effective:VoteEffective) -> bool {
             assert!(self.env().caller() != self.creator);
             self.vote_effective = vote_effective;
+            true
         }
 
 
@@ -203,9 +215,9 @@ mod dao_proposal {
         ) -> bool {
             assert!(start_block > self.env().block_number());
             assert!(end_block > start_block);
-            let limit = self.limit;
+            let limit = &self.limit;
             if limit.fee_open {
-                let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(limit.fee_token);
+                let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(limit.fee_token);
                 //todo change this account address to vault
                 erc20_instance.transfer_from(Self::env().caller(),AccountId::default(),limit.fee_number);
             }
@@ -238,8 +250,9 @@ mod dao_proposal {
         }
         #[ink(message)]
         pub fn state(&self, proposal_id: u64) -> ProposalState {
+            let proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
             let block_number = self.env().block_number();
-            let effective:VoteEffective = self.vote_effective;
+            let effective:VoteEffective = self.vote_effective.clone();
             let mut failed = false;
             let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.erc20_addr);
             let token_info = erc20_instance.query_info();
@@ -253,8 +266,6 @@ mod dao_proposal {
                     failed = true;
                 }
             }
-
-            let proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
             if proposal.canceled { return ProposalState::Canceled; }
             else if block_number <= proposal.start_block { return ProposalState::Pending; }
             else if block_number <= proposal.end_block { return ProposalState::Active; }
@@ -300,7 +311,7 @@ mod dao_proposal {
             let mut proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
             assert!(proposal.end_block < block_number);
             assert!(proposal.end_block + proposal.publicity_delay > block_number);
-            let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.rbd_addr);
+            let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.erc20_addr);
             let votes = erc20_instance.get_current_votes(caller);
             proposal.publicity_votes = votes;
             true
@@ -312,7 +323,7 @@ mod dao_proposal {
             let mut proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
             let mut receipts = proposal.receipts.get(&caller).unwrap().clone();
             assert!(receipts.has_voted == false);
-            let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.rbd_addr);
+            let erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(self.erc20_addr);
             let votes = erc20_instance.get_current_votes(caller);
             if support {
                 proposal.for_votes += votes;
@@ -359,17 +370,19 @@ mod dao_proposal {
                     .expect("Cannot get accounts");
             let mut govnance_dao = DaoProposal::new(
                 AccountId::from([0x01; 32]),
-                AccountId::from([0x01; 32])
+                AccountId::from([0x01; 32]),
+                AccountId::from([0x01; 32]),
             );
             let mut vec = Vec::new();
             vec.push(1);
             let select: [u8; 4] = [1, 2, 3, 4];
-            govnance_dao.propose(String::from("test"), String::from("test"), Transaction {
+            govnance_dao.propose(String::from("test"), String::from("test"),3,4,5, Transaction {
                 callee: accounts.alice,
                 selector: select,
                 input: vec,
                 transferred_value: 0,
-                gas_limit: 1000000 }
+                gas_limit: 1000000 },
+                1
             );
             let proposal: Proposal = govnance_dao.get_proposal_by_id(1);
             assert!(proposal.title == String::from("test"));

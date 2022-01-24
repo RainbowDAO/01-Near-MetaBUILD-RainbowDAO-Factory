@@ -1,6 +1,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
 use ink_lang as ink;
+pub use self::dao_users::{
+    DaoUsers
+};
 #[ink::contract]
 mod dao_users {
     use alloc::string::String;
@@ -145,6 +148,12 @@ mod dao_users {
                 group = iter.next();
             }
             group_vec
+        }
+        #[ink(message)]
+        pub fn close_group(&mut self,id:u128) -> bool {
+            let mut group =  self.group.get_mut(&id).unwrap();
+            group.is_open = false;
+            true
         }
     }
 

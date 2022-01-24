@@ -90,8 +90,21 @@ mod dao_manager {
         owner: AccountId,
         name: String,
         symbol: String,
-        total_supply: u64,
+        total_supply: u128,
         decimals: u8,
+    }
+    #[derive(
+    Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
+    )]
+    #[cfg_attr(
+    feature = "std",
+    derive(::scale_info::TypeInfo, ::ink_storage::traits::StorageLayout)
+    )]
+    pub struct Union {
+        open: bool,
+        join_limit: u128,
+        daos: BTreeMap<AccountId,bool>,
+        manager:AccountId
     }
 
 
@@ -107,6 +120,7 @@ mod dao_manager {
         components: DAOComponents,
         component_addrs: DAOComponentAddrs,
         category:String,
+        union:Union
     }
 
     impl DAOManager {
@@ -132,10 +146,63 @@ mod dao_manager {
                     dao_users_addr:None,
                     dao_setting_addr:None
                 },
-                category
+                category,
+                union:Union{
+                    open: false,
+                    join_limit: 0,
+                    daos: BTreeMap::new(),
+                    manager:AccountId::default()
+                }
             }
         }
 
+        ///
+        #[ink(message)]
+        pub fn operate_join(&mut self,operate:bool) -> bool {
+            self.check_dao_category(String::from("union"));
+            let mut union = self.union.unwrap();
+            union.open = operate;
+            true
+        }
+
+        #[ink(message)]
+        pub fn set_join_limit(&mut self,limit:u128) -> bool {
+            self.check_dao_category(String::from("union"));
+            let mut union = self.union.unwrap();
+            union.limit = limit;
+        }
+        #[ink(message)]
+        pub fn join_union_dao(&mut self,dao:AccountId) -> bool {
+            let mut union:Union = self.union.unwrap();
+            union.daos.insert(dao,true);
+        }
+        #[ink(message)]
+        pub fn leave_union_dao(&mut self,dao:AccountId) -> bool {
+            let mut union:Union = self.union.unwrap();
+            union.daos.insert(dao,false);
+        }
+        #[ink(message)]
+        pub fn list_union_dao(&mut self) -> Vec<Account> {
+            let mut dao_vec = Vec::new();
+            let mut iter = self.union.values();
+            let mut key_iter = self.union.keys();
+            let mut category = iter.next();
+            let mut name = key_iter.next();
+            while category.is_some() {
+                if category.unwrap().clone() == true {
+                    dao_vec.push(name.unwrap().clone());
+                }
+                // route_vec.push(route.unwrap().clone());
+                category = iter.next();
+                name = key_iter.next();
+            }
+            dao_vec
+        }
+        /// create a child dao
+        #[ink(message)]
+        pub fn create_child_dao(&mut self) -> bool {
+            self.check_dao_category(String::from("mother"));
+        }
         /// Set the dao use which template
         #[ink(message)]
         pub fn set_template(&mut self, template: DAOTemplate) -> bool {
@@ -219,7 +286,7 @@ mod dao_manager {
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             // let vault_addr = self.component_addrs.vault_addr.unwrap();
-            let user_instance_params = DaoUsers::new(self.component_addrs.dao_setting_addr)
+            let user_instance_params = DaoUsers::new(self.component_addrs.dao_setting_addr.unwrap())
                 .endowment(CONTRACT_INIT_BALANCE)
                 .code_hash(user_code_hash)
                 .salt_bytes(salt)
@@ -231,7 +298,9 @@ mod dao_manager {
             self.component_addrs.dao_users_addr = Some(user_addr);
             true
         }
-
+        fn check_dao_category(&self,category:String) {
+            assert!(self.category == category);
+        }
 
 
         /// init erc20

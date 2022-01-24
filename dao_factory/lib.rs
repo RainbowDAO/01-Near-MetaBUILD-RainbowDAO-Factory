@@ -22,13 +22,11 @@ mod dao_factory {
     const TEMPLATE_INIT_BALANCE: u128 = 1000 * 1000 * 1_000_000_000_000;
     const DAO_INIT_BALANCE: u128 = 1000 * 1000 * 1_000_000_000_000;
 
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
     derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
     )]
-
     #[derive(Debug)]
     pub struct DAOInstance {
         id: u64,
@@ -51,7 +49,6 @@ mod dao_factory {
         instance_map_by_owner: StorageHashMap<AccountId, Vec<u64>>,
         route_addr:AccountId
     }
-
 
 
     #[ink(event)]
@@ -106,7 +103,7 @@ mod dao_factory {
             let template = self.query_template_by_index(index);
             let dao_manager_code_hash = template.dao_manager_code_hash;
             let salt = self.instance_index.to_le_bytes();
-            let dao_instance_params = DAOManager::new(self.env().caller(),controller, self.instance_index,controller_type)
+            let dao_instance_params = DAOManager::new(self.env().caller(),controller, self.instance_index,controller_type,category)
                 .endowment(DAO_INIT_BALANCE)
                 .code_hash(dao_manager_code_hash)
                 .salt_bytes(salt)
