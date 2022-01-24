@@ -14,6 +14,10 @@ mod dao_setting {
         traits::{PackedLayout, SpreadLayout},
     };
 
+    /// Fee limit for joining Dao
+    /// time_limit:How long is the total limit
+    /// fee_limit:the number of fee
+    /// token:the token of limit
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
     )]
@@ -26,6 +30,15 @@ mod dao_setting {
         pub  fee_limit:u128,
         pub  token:AccountId
     }
+
+    /// Other limit for joining Dao
+    /// use_token:Whether to enable token restriction
+    /// use_nft:Whether to enable nft restriction
+    /// token:the token of limit
+    /// token_balance_limit:the balance of limit
+    /// nft:the nft address
+    /// nft_balance_limit:the balance of limit
+    /// nft_time_limit:Remaining time limit of NFT
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
     )]
@@ -42,6 +55,11 @@ mod dao_setting {
         pub nft_balance_limit:u128,
         pub nft_time_limit:u128
     }
+    ///creator:the creator's address
+    ///owner:the manager's address
+    /// fee_limit:the fee limit info
+    /// other_limit:the other limit info
+    /// conditions:Specific restriction type
     #[ink(storage)]
     pub struct DaoSetting {
         creator:AccountId,
@@ -52,7 +70,6 @@ mod dao_setting {
     }
 
     impl DaoSetting {
-        /// Constructor that initializes the `bool` value to the given `init_value`.
         #[ink(constructor)]
         pub fn new(creator:AccountId) -> Self {
             Self {
@@ -76,16 +93,20 @@ mod dao_setting {
             }
         }
 
+        ///Get what restrictions to use
         #[ink(message)]
         pub fn get_conditions(&self) -> u64 {
             self.conditions
         }
+        ///Get fee limit
         #[ink(message)]
         pub fn get_fee_setting(&self) -> FeeConditions { self.fee_limit.clone() }
+        ///Get other limit
         #[ink(message)]
         pub fn get_other_setting(&self) -> OtherConditions {
             self.other_limit.clone()
         }
+        ///set join limit
         #[ink(message)]
         pub fn set_join_limit(&mut self,conditions:u64,other_conditions:OtherConditions,fee_conditions:FeeConditions) -> bool {
             let owner = self.env().caller();

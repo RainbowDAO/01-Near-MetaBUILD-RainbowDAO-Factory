@@ -119,7 +119,7 @@ mod dao_proposal {
         support_scale:u128
     }
 
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -162,6 +162,17 @@ mod dao_proposal {
         Queued,
     }
 
+    /// This is a proposal in Dao
+    /// creator:the creator of the contract
+    /// owner:the owner of the contract
+    /// proposals:HashMap of the proposal'id and proposal
+    /// voting_delay:Voting buffer
+    /// voting_period:Voting time
+    /// proposal_length:Total number of proposals
+    /// route_addr:the addr of route
+    /// erc20_addr:the addr of erc20
+    /// limit:the limit of create proposal
+    /// vote_effective:the effective of vote
     #[ink(storage)]
     pub struct DaoProposal {
         creator:AccountId,
@@ -219,6 +230,15 @@ mod dao_proposal {
         }
 
 
+        /// Create a new proposal
+        /// #Fields
+        /// title:proposal's title
+        /// desc:proposal's content
+        /// category:proposal's category
+        /// start_block:proposal's start_block
+        /// end_block:proposal's end_block
+        /// publicity_delay:Date of publication of the proposal
+        /// transaction:proposal's transaction
         #[ink(message)]
         pub fn propose(
             &mut self,
@@ -265,6 +285,8 @@ mod dao_proposal {
             });
             true
         }
+         /// Show state of proposal
+         /// proposal_id:proposal's id
         #[ink(message)]
         pub fn state(&self, proposal_id: u64) -> ProposalState {
             let proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
@@ -293,6 +315,8 @@ mod dao_proposal {
             else if proposal.publicity_votes > proposal.for_votes{ return ProposalState::Defeated; }
             else { return ProposalState::Queued; }
         }
+        /// Set a proposal to cancel
+        /// proposal_id:proposal's id
         #[ink(message)]
         pub fn cancel(&self, proposal_id: u64) -> bool {
             let mut proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
@@ -301,6 +325,8 @@ mod dao_proposal {
             proposal.canceled = true;
             true
         }
+        /// Implement a proposal
+        /// proposal_id:proposal's id
         #[ink(message)]
         pub fn exec(&mut self, proposal_id: u64) -> bool {
             let mut proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();
@@ -321,6 +347,8 @@ mod dao_proposal {
             proposal.executed = true;
             true
         }
+        /// Vote for the publicity period
+        /// proposal_id:proposal's id
         #[ink(message)]
         pub fn public_vote(&mut self, proposal_id: u64) -> bool {
             let block_number = self.env().block_number();
@@ -333,6 +361,9 @@ mod dao_proposal {
             proposal.publicity_votes = votes;
             true
         }
+        /// Vote on a proposal
+        /// proposal_id:proposal's id
+        /// support:Is it supported
         #[ink(message)]
         pub fn cast_vote(&mut self, proposal_id: u64, support: bool) -> bool {
             let caller = Self::env().caller();
@@ -353,6 +384,7 @@ mod dao_proposal {
 
             true
         }
+        /// Show all proposals
         #[ink(message)]
         pub fn list_proposals(&self) -> Vec<Proposal> {
             let mut proposal_vec = Vec::new();
@@ -364,6 +396,7 @@ mod dao_proposal {
             }
             proposal_vec
         }
+        /// Show a proposal by id
         #[ink(message)]
         pub fn get_proposal_by_id(&self, proposal_id: u64) -> Proposal {
             let proposal: Proposal = self.proposals.get(&proposal_id).unwrap().clone();

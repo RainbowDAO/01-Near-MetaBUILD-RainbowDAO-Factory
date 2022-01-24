@@ -19,7 +19,10 @@ mod dao_users {
             SpreadLayout,
         }
     };
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    /// store a user info
+    /// addr:the address of user
+    /// expire_time : the expire of user
+    /// role : the role of user
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -32,7 +35,13 @@ mod dao_users {
         expire_time:u128,
         role:u64
     }
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    /// store a group info
+    /// id:the id of group
+    /// name:the name of group
+    /// join_directly:Join directly
+    /// is_open:Open or not
+    /// users:HashMap of user's address of bool
+    /// manager:the manager of group
     #[derive(scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -49,6 +58,11 @@ mod dao_users {
         manager:AccountId
     }
 
+    ///All users in Dao are stored here
+    /// user:hashmap of user's address and userinfo
+    /// setting_addr:the address of setting
+    /// group:hashmap of group'id and group info
+    /// user_group:hashmap of user address , group id and bool
     #[ink(storage)]
     pub struct DaoUsers {
          user:StorageHashMap<AccountId,User>,
@@ -71,6 +85,8 @@ mod dao_users {
                 group_index:0
             }
         }
+        /// add a group
+        /// group:thr struct of group
         #[ink(message)]
         pub fn add_group(&mut self,group:Group) -> bool {
             let index = self.group_index.clone() + 1;
@@ -78,6 +94,7 @@ mod dao_users {
             self.group.insert(index,group);
             true
         }
+        /// join the dao
         #[ink(message)]
         pub fn join(&mut self) ->bool {
             let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(self.setting_addr);
@@ -105,6 +122,7 @@ mod dao_users {
             }
             true
         }
+        /// Check whether the user has joined
         #[ink(message)]
         pub fn verify_user(&mut self,index:u128,user:AccountId) -> bool {
             let mut group =  self.group.get_mut(&index).unwrap();
@@ -113,6 +131,8 @@ mod dao_users {
             true
         }
 
+        /// join a group
+        /// index:the id of group
         #[ink(message)]
         pub fn join_group(&mut self,index:u128) -> bool {
             let mut group =  self.group.get_mut(&index).unwrap();
@@ -127,6 +147,7 @@ mod dao_users {
             self.user_group.insert((caller,index),true);
             true
         }
+        /// show all user of dao
         #[ink(message)]
         pub fn list_user(&self) -> Vec<User> {
             let mut user_vec = Vec::new();
@@ -138,6 +159,7 @@ mod dao_users {
             }
             user_vec
         }
+        /// show all group of dao
         #[ink(message)]
         pub fn list_group(&self) -> Vec<Group> {
             let mut group_vec = Vec::new();
@@ -149,6 +171,8 @@ mod dao_users {
             }
             group_vec
         }
+        /// close a group
+        /// id:the id of group
         #[ink(message)]
         pub fn close_group(&mut self,id:u128) -> bool {
             let mut group =  self.group.get_mut(&id).unwrap();

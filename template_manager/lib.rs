@@ -18,7 +18,12 @@ mod template_manager {
         collections::HashMap as StorageHashMap,
     };
 
-    /// Indicates whether a transaction is already confirmed or needs further confirmations.
+    /// store the template info
+    /// id:the id of template
+    /// owner:the owner of the template
+    /// name:the name of the template
+    /// dao_manager_code_hash:the hash of the dao manager
+    /// components:the  of the template
     #[derive(Debug, scale::Encode, scale::Decode, Clone, SpreadLayout, PackedLayout)]
     #[cfg_attr(
     feature = "std",
@@ -38,6 +43,10 @@ mod template_manager {
         pub components: BTreeMap<String, Hash>,
     }
 
+    /// This controls the template type of Dao
+    /// owner:the manager of the contract
+    /// template_index:the length of template
+    /// template_map:hashmap of index and DAOTemplate
     #[ink(storage)]
     pub struct TemplateManager {
         owner: AccountId,
@@ -64,6 +73,10 @@ mod template_manager {
             instance
         }
 
+        /// add a template
+        /// name:the name of template
+        /// dao_manager_code_hash:the hash of ao_manager
+        /// components:the components of ao_manager
         #[ink(message)]
         pub fn add_template(&mut self, name: String, dao_manager_code_hash: Hash, components: BTreeMap<String, Hash>) -> bool {
             assert_eq!(self.template_index + 1 > self.template_index, true);
@@ -83,6 +96,7 @@ mod template_manager {
             true
         }
 
+        /// show all template
         #[ink(message)]
         pub fn list_templates(&self) -> Vec<DAOTemplate> {
             let mut temp_vec = Vec::new();
@@ -94,7 +108,7 @@ mod template_manager {
             }
             temp_vec
         }
-
+        /// get a template by index
         #[ink(message)]
         pub fn query_template_by_index(&self, index: u64) -> DAOTemplate {
             self.template_map.get(&index).unwrap().clone()
