@@ -38,10 +38,10 @@ std = [
     "ink_lang/std",
     "scale/std",
     "scale-info/std",
-    "org/std",
     "erc20/std",
-    "auth/std",
 ]
 ink-as-dependency = []
 
 [workspace]
+[profile.release]
+overflow-checks = false

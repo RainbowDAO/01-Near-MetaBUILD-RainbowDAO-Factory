@@ -5,6 +5,7 @@ use ink_lang as ink;
 pub use self::template_manager::TemplateManager;
 pub use self::template_manager::DAOTemplate;
 
+#[allow(unused_imports)]
 #[ink::contract]
 mod template_manager {
     use alloc::string::String;
@@ -78,8 +79,23 @@ mod template_manager {
         /// dao_manager_code_hash:the hash of ao_manager
         /// components:the components of ao_manager
         #[ink(message)]
-        pub fn add_template(&mut self, name: String, dao_manager_code_hash: Hash, components: BTreeMap<String, Hash>) -> bool {
+        pub fn add_template(
+            &mut self,
+            name: String,
+            dao_manager_code_hash: Hash,
+            base_hash:Hash,
+            erc20_hash:Hash,
+            user_hash:Hash,
+            setting_hash:Hash,
+            vault_hash:Hash,
+        ) -> bool {
             assert_eq!(self.template_index + 1 > self.template_index, true);
+            let mut components = BTreeMap::new();
+            components.insert(String::from("BASE"),base_hash);
+            components.insert(String::from("ERC20"),erc20_hash);
+            components.insert(String::from("USER"),user_hash);
+            components.insert(String::from("SETTING"),setting_hash);
+            components.insert(String::from("VAULT"),vault_hash);
             let from = self.env().caller();
             self.template_map.insert(self.template_index, DAOTemplate {
                 id: self.template_index,

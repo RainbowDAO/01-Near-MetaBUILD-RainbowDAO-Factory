@@ -2,7 +2,7 @@
 extern crate alloc;
 
 use ink_lang as ink;
-
+#[allow(unused_imports)]
 #[ink::contract]
 mod dao_proposal {
     use ink_env::call::{

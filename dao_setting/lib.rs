@@ -4,6 +4,7 @@ use ink_lang as ink;
 pub use self::dao_setting::{
     DaoSetting
 };
+#[allow(unused_imports)]
 #[ink::contract]
 mod dao_setting {
     use alloc::string::String;

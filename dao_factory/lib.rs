@@ -1,7 +1,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
 use ink_lang as ink;
-
+#[allow(unused_imports)]
 #[ink::contract]
 mod dao_factory {
 
@@ -19,8 +19,8 @@ mod dao_factory {
     use template_manager::DAOTemplate;
     use dao_manager::DAOManager;
 
-    const TEMPLATE_INIT_BALANCE: u128 = 1000 * 1000 * 1_000_000_000_000;
-    const DAO_INIT_BALANCE: u128 = 1000 * 1000 * 1_000_000_000_000;
+    const TEMPLATE_INIT_BALANCE: u128 = 1000 * 1_000_000_000_000;
+    const DAO_INIT_BALANCE: u128 = 1000 * 1_000_000_000_000;
 
     ///Initialization information of Dao
     /// owner:the manager of the dao
@@ -53,7 +53,6 @@ mod dao_factory {
     ///instance_index:the instance index of  all dao
     ///instance_map:HashMap of index and DAOInstance
     ///instance_map_by_owner:HashMap of user and address
-    ///route_addr:the router address
     #[ink(storage)]
     pub struct DaoFactory {
         owner: AccountId,
@@ -62,7 +61,6 @@ mod dao_factory {
         instance_index:u64,
         instance_map: StorageHashMap<u64, DAOInstance>,
         instance_map_by_owner: StorageHashMap<AccountId, Vec<u64>>,
-        route_addr:AccountId
     }
 
 
@@ -78,7 +76,7 @@ mod dao_factory {
 
     impl DaoFactory {
         #[ink(constructor)]
-        pub fn new(route_addr:AccountId) -> Self {
+        pub fn new() -> Self {
             Self {
                 owner: Self::env().caller(),
                 template_addr: None,
@@ -86,7 +84,6 @@ mod dao_factory {
                 instance_index:0,
                 instance_map: StorageHashMap::new(),
                 instance_map_by_owner: StorageHashMap::new(),
-                route_addr
             }
         }
 
@@ -96,7 +93,6 @@ mod dao_factory {
         #[ink(message)]
         pub fn  init_factory (&mut self, template_code_hash: Hash, version:u128) -> bool
         {
-            // instance template_manager
             let salt = version.to_le_bytes();
             let instance_params = TemplateManager::new(self.owner)
                 .endowment(TEMPLATE_INIT_BALANCE)
@@ -115,13 +111,15 @@ mod dao_factory {
         ///controller:the manager of the dao
         ///controller_type:the manager's category of the dao
         ///category:the category of the dao
-        pub fn init_dao_by_template(&mut self, index: u64, controller: AccountId,controller_type:u32,category:String) -> bool {
+        #[ink(message)]
+        pub fn init_dao_by_template(
+            &mut self,
+            dao_manager_code_hash:Hash,
+            controller: AccountId,
+            controller_type:u32,
+            category:String
+        ) -> bool {
             assert_eq!(self.instance_index + 1 > self.instance_index, true);
-            // let total_balance = Self::env().balance();
-            // assert_eq!(total_balance >= 20, true);
-            // instance dao_manager
-            let template = self.query_template_by_index(index);
-            let dao_manager_code_hash = template.dao_manager_code_hash;
             let salt = self.instance_index.to_le_bytes();
             let dao_instance_params = DAOManager::new(self.env().caller(),controller, self.instance_index,controller_type,category)
                 .endowment(DAO_INIT_BALANCE)
@@ -130,8 +128,8 @@ mod dao_factory {
                 .params();
             let dao_init_result = ink_env::instantiate_contract(&dao_instance_params);
             let dao_addr = dao_init_result.expect("failed at instantiating the `DAO Instance` contract");
-            let mut dao_instance: DAOManager = ink_env::call::FromAccountId::from_account_id(dao_addr);
-            dao_instance.set_template(template);
+            let  dao_instance: DAOManager = ink_env::call::FromAccountId::from_account_id(dao_addr);
+            // dao_instance.set_template(template);
             self.env().emit_event(InstanceDAO {
                 index: self.instance_index,
                 owner: Some(controller),
@@ -160,31 +158,41 @@ mod dao_factory {
             self.template.as_ref().unwrap().query_template_by_index(index)
         }
 
+        /// get dao by id
+        #[ink(message)]
+        pub fn get_dao_by_index(&self,id:u64) -> DAOInstance {
+            self.instance_map.get(&id).unwrap().clone()
+        }
+        /// show list of user create
+        #[ink(message)]
+        pub fn get_daos_by_owner(&self) -> Vec<u64> {
+            let user = self.env().caller();
+            let list = self.instance_map_by_owner.get(&user).unwrap().clone();
+            list
+        }
+        /// create a record after user join
+        #[ink(message)]
+        pub fn joined_dao(&mut self) -> bool {
+            let user = self.env().caller();
+            let  id_list = self.instance_map_by_owner.entry(user.clone()).or_insert(Vec::new());
+            id_list.push(self.instance_index);
+            true
+        }
+
 
     }
 
-    // #[cfg(test)]
-    // mod tests {
-    //     /// Imports all the definitions from the outer scope so we can use them here.
-    //     use super::*;
-    //
-    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
-    //     use ink_lang as ink;
-    //
-    //     /// We test if the default constructor does its job.
-    //     #[ink::test]
-    //     fn default_works() {
-    //         let daoFactory = DaoFactory::default();
-    //         assert_eq!(daoFactory.get(), false);
-    //     }
-    //
-    //     /// We test a simple use case of our contract.
-    //     #[ink::test]
-    //     fn it_works() {
-    //         let mut daoFactory = DaoFactory::new(false);
-    //         assert_eq!(daoFactory.get(), false);
-    //         daoFactory.flip();
-    //         assert_eq!(daoFactory.get(), true);
-    //     }
-    // }
+    #[cfg(test)]
+    mod tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+        #[ink::test]
+        fn it_works() {
+            let mut dao_factory = DaoFactory::new();
+            assert!(dao_factory.joined_dao() == true);
+        }
+    }
 }

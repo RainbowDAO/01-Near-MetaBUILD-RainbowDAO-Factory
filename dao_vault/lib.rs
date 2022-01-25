@@ -5,21 +5,15 @@ use ink_lang as ink;
 //use ink_prelude::vec::Vec;
 pub use self::dao_vault::VaultManager;
 
+#[allow(unused_imports)]
 #[ink::contract]
 mod dao_vault {
-
     use alloc::string::String;
-
     use ink_storage::{
         collections::HashMap as StorageHashMap,
         traits::{PackedLayout, SpreadLayout},
-
     };
-
     use erc20::Erc20;
-
-
-
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout,Default
     )]
@@ -30,10 +24,10 @@ mod dao_vault {
     pub struct Transfer {
         transfer_id:u64,
         transfer_direction:u64,// 1: out 2 : in
-        token_name: String,
+        // token_name: String,
         from_address:AccountId,
         to_address:AccountId,
-        value: u64,
+        value: u128,
         transfer_time:u64,
     }
 
@@ -54,7 +48,6 @@ mod dao_vault {
 
     #[ink(storage)]
     pub struct VaultManager {
-
         tokens: StorageHashMap<AccountId, AccountId>,
         visible_tokens: StorageHashMap<AccountId, AccountId>,
         transfer_history:StorageHashMap<u64,Transfer>,
@@ -75,113 +68,64 @@ mod dao_vault {
         token_address: AccountId,
 
     }
-
-
-
-
     #[ink(event)]
     pub struct RemoveVaultTokenEvent {
         #[ink(topic)]
         token_address: AccountId,
 
     }
-
-
-
     #[ink(event)]
     pub struct GetTokenBalanceEvent {
         #[ink(topic)]
         token_address:AccountId,
-
         #[ink(topic)]
-        balance:u64,
+        balance:u128,
     }
-
     #[ink(event)]
     pub struct DepositTokenEvent {
-
-        #[ink(topic)]
-        token_name:String,
         #[ink(topic)]
         from_address:AccountId,
-
         #[ink(topic)]
-        value:u64,
+        value:u128,
     }
-
-
     #[ink(event)]
     pub struct WithdrawTokenEvent {
         #[ink(topic)]
-        token_name:String,
-
-        #[ink(topic)]
         to_address:AccountId,
-
         #[ink(topic)]
-        value:u64,
+        value:u128,
     }
-
-
-
-
-
     impl VaultManager {
-
         #[ink(constructor)]
         pub fn new() -> Self {
-
             let vault_contract_address = Self::env().account_id();
-
             Self {
                 tokens: StorageHashMap::default(),
                 visible_tokens: StorageHashMap::default(),
                 transfer_history: StorageHashMap::default(),
                 vault_contract_address: vault_contract_address,
-
             }
         }
-
-
-
         pub fn get_erc20_by_address(&self, address:AccountId) -> Erc20 {
             let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(address);
             erc20_instance
-
         }
-
-
-
-
-
         #[ink(message)]
         pub fn add_vault_token(&mut self,erc_20_address:AccountId) -> bool  {
-
             let _caller = self.env().caller();
-
-            let  _auth = self.get_auth_by_address(self.auth_contract_address);
-
             // let is_permission = auth.has_permission(caller,String::from("vault"),String::from("add_vault_token"));
             let is_permission = true;
-
             if is_permission == false {
                 return false;
             }
-
             match self.tokens.insert(
-                                     erc_20_address,self.vault_contract_address
+                 erc_20_address,self.vault_contract_address
             ) {
 
                 Some(_) => { false},
                 None => {
-                    self.visible_tokens.insert(
-                                               erc_20_address,self.vault_contract_address);
-
-
-
-                    self.env().emit_event(AddVaultTokenEvent{
-                        token_address:erc_20_address,
-                        });
+                    self.visible_tokens.insert(erc_20_address,self.vault_contract_address);
+                    self.env().emit_event(AddVaultTokenEvent{ token_address:erc_20_address,});
                     true
                 }
             }
@@ -190,19 +134,12 @@ mod dao_vault {
 
         #[ink(message)]
         pub fn remove_vault_token(&mut self,erc_20_address: AccountId) -> bool  {
-
             let _caller = self.env().caller();
-
-            let _auth = self.get_auth_by_address(self.auth_contract_address);
-
             //let is_permission = auth.has_permission(caller,String::from("vault"),String::from("remove_vault_token"));
             let is_permission = true;
-
             if is_permission == false {
                 return false;
             }
-
-
 
             match self.visible_tokens.take(&erc_20_address) {
                 None => { false}
@@ -230,7 +167,7 @@ mod dao_vault {
 
 
         #[ink(message)]
-        pub fn get_balance_of(&self,erc_20_address: AccountId) -> u64 {
+        pub fn get_balance_of(&self,erc_20_address: AccountId) -> u128 {
 
             if self.tokens.contains_key(&erc_20_address) {
 
@@ -251,27 +188,27 @@ mod dao_vault {
             }
         }
 
+        // #[ink(message)]
+        // pub fn get_balance(&self) -> ink_prelude::vec::Vec<TokenInfo> {
+        //
+        //     self.visible_tokens.keys();
+        //     let mut v:ink_prelude::vec::Vec<TokenInfo> = ink_prelude::vec::Vec::new();
+        //     for address in self.visible_tokens.keys() {
+        //
+        //         let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(*address);
+        //         v.push(TokenInfo{
+        //             erc20: *address,
+        //             symbol: erc20_instance.symbol(),
+        //             name: erc20_instance.name(),
+        //             balance: erc20_instance.balance_of(self.vault_contract_address),
+        //         })
+        //     }
+        //     v
+        // }
+
+
         #[ink(message)]
-        pub fn get_balance(&self) -> ink_prelude::vec::Vec<TokenInfo> {
-
-            self.visible_tokens.keys();
-            let mut v:ink_prelude::vec::Vec<TokenInfo> = ink_prelude::vec::Vec::new();
-            for address in self.visible_tokens.keys() {
-
-                let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(*address);
-                v.push(TokenInfo{
-                    erc20: *address,
-                    symbol: erc20_instance.symbol(),
-                    name: erc20_instance.name(),
-                    balance: erc20_instance.balance_of(self.vault_contract_address),
-                })
-            }
-            v
-        }
-
-
-        #[ink(message)]
-        pub fn deposit(&mut self, erc_20_address:AccountId, from_address:AccountId,value:u64) -> bool {
+        pub fn deposit(&mut self, erc_20_address:AccountId, from_address:AccountId,value:u128) -> bool {
 
             let to_address = self.vault_contract_address;
 
@@ -283,7 +220,7 @@ mod dao_vault {
                 //let mut erc_20 = self.get_erc20_by_address(*erc_20_address.unwrap());
                 let mut erc_20 = self.get_erc20_by_address(erc_20_address);
 
-                let token_name = (&erc_20).name();
+                // let token_name = (&erc_20).name();
 
 
                 let transfer_result = erc_20.transfer_from(from_address,to_address, value);
@@ -297,24 +234,21 @@ mod dao_vault {
                 let transfer_time: u64 = self.env().block_timestamp();
 
 
-                self.transfer_history.insert(transfer_id,
-                                             Transfer{
-
-                                                 transfer_direction:2,// 1: out 2: in
-                                                 token_name:token_name.clone(),
-                                                 transfer_id:transfer_id,
-                                                 from_address:from_address,
-                                                 to_address:to_address,
-                                                 value,
-                                                 transfer_time});
-
-
+                self.transfer_history.insert(
+                    transfer_id,
+                     Transfer{
+                         transfer_direction:2,// 1: out 2: in
+                         // token_name:token_name.clone(),
+                         transfer_id:transfer_id,
+                         from_address:from_address,
+                         to_address:to_address,
+                         value,
+                         transfer_time});
                 self.env().emit_event(DepositTokenEvent{
-                    token_name: token_name.clone(),
+                    // token_name: token_name.clone(),
                     from_address:from_address,
                     value:value});
                 true
-
             } else{
                 false
             }
@@ -323,7 +257,7 @@ mod dao_vault {
 
 
         #[ink(message)]
-        pub fn withdraw(&mut self,erc_20_address:AccountId,to_address:AccountId,value:u64) -> bool {
+        pub fn withdraw(&mut self,erc_20_address:AccountId,to_address:AccountId,value:u128) -> bool {
 
             let from_address = self.vault_contract_address;
 
@@ -331,8 +265,6 @@ mod dao_vault {
 
 
                 let _caller = self.env().caller();
-
-                let _auth = self.get_auth_by_address(self.auth_contract_address);
 
                 // let is_permission = auth.has_permission(caller,String::from("vault"),String::from("withdraw"));
                 let is_permission = true;
@@ -349,7 +281,7 @@ mod dao_vault {
                 //let mut erc_20 = self.get_erc20_by_address(*erc_20_address.unwrap());
                 let mut erc_20 = self.get_erc20_by_address(erc_20_address);
 
-                let token_name = (&erc_20).name();
+                // let token_name = (&erc_20).name();
 
                 //erc_20.transfer_from(from_address,to_address, value);
 
@@ -363,21 +295,18 @@ mod dao_vault {
 
                 let transfer_time: u64 = self.env().block_timestamp();
 
-                self.transfer_history.insert(transfer_id,
-                                             Transfer{
-                                                 transfer_direction:1,// 1: out 2: in
-                                                 token_name: token_name.clone(),
-                                                 transfer_id:transfer_id,
-                                                 from_address:from_address,
-                                                 to_address:to_address,
-                                                 value:value,
-                                                 transfer_time:transfer_time});
-
-
-
-
+                self.transfer_history.insert(
+                    transfer_id,
+                     Transfer{
+                         transfer_direction:1,// 1: out 2: in
+                         // token_name: token_name.clone(),
+                         transfer_id:transfer_id,
+                         from_address:from_address,
+                         to_address:to_address,
+                         value:value,
+                         transfer_time:transfer_time});
                 self.env().emit_event(WithdrawTokenEvent{
-                    token_name: token_name.clone(),
+                    // token_name: token_name.clone(),
                     to_address:to_address,
                     value:value,});
 
@@ -387,7 +316,6 @@ mod dao_vault {
                 false
             }
         }
-
 
 
         #[ink(message)]

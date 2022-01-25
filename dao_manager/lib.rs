@@ -4,6 +4,8 @@ use ink_lang as ink;
 
 pub use self::dao_manager::DAOManager;
 
+#[allow(unused_imports)]
+#[allow(dead_code)]
 #[ink::contract]
 mod dao_manager {
     use alloc::string::String;
@@ -89,6 +91,7 @@ mod dao_manager {
         // vote module contract's address
         pub vault_addr: Option<AccountId>,
     }
+    /// the erc20 param
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
     )]
@@ -103,6 +106,7 @@ mod dao_manager {
         total_supply: u128,
         decimals: u8,
     }
+    /// the union dao setting
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout, Default
     )]
@@ -116,22 +120,31 @@ mod dao_manager {
         daos: BTreeMap<AccountId,bool>,
         manager:AccountId
     }
-
-
-
+    /// Store important information of Dao
+    /// creator:the creator of dao
+    /// owner:the owner of dao
+    /// template:the template of dao
+    /// active:the creator of dao
+    /// dao_id:the dao_id of dao
+    /// controller_type:the controller_type of dao
+    /// components:the components of dao
+    /// component_addrs:the component_addrs of dao
+    /// category:the category of dao
+    /// union:store the union info
+    /// childs_dao:HashMap dao'id and child dao's
     #[ink(storage)]
     pub struct DAOManager {
-        creator:AccountId,
-        owner: AccountId,
-        template: Option<DAOTemplate>,
-        active: bool,
-        dao_id:u64,
-        controller_type:u32,
-        components: DAOComponents,
-        component_addrs: DAOComponentAddrs,
-        category:String,
-        union:Union,
-        childs_dao:StorageHashMap<AccountId,Vec<AccountId>>
+        pub creator:AccountId,
+        pub owner: AccountId,
+        pub template: Option<DAOTemplate>,
+        pub active: bool,
+        pub dao_id:u64,
+        pub controller_type:u32,
+        pub components: DAOComponents,
+        pub component_addrs: DAOComponentAddrs,
+        pub category:String,
+        pub union:Union,
+        pub childs_dao:StorageHashMap<AccountId,Vec<AccountId>>
     }
 
     impl DAOManager {
@@ -170,36 +183,48 @@ mod dao_manager {
             }
         }
 
-        ///
+        /// change the dao status
         #[ink(message)]
         pub fn operate_join(&mut self,operate:bool) -> bool {
             self.check_dao_category(String::from("union"));
-            let mut union = self.union.unwrap();
-            union.open = operate;
+            self.union.open = operate;
             true
         }
-
+        /// get the component_addrs
+        #[ink(message)]
+        pub fn get_component_addrs(&self) -> DAOComponentAddrs{
+            self.component_addrs
+        }
+        /// get the child daos
+        #[ink(message)]
+        pub fn get_childs_daos(&self,address:AccountId) -> Vec<AccountId>{
+            self.childs_dao.get(&address).unwrap().clone()
+        }
+        /// set the limit of join dao
         #[ink(message)]
         pub fn set_join_limit(&mut self,limit:u128) -> bool {
             self.check_dao_category(String::from("union"));
-            let mut union = self.union.unwrap();
-            union.limit = limit;
+            self.union.join_limit = limit;
+            true
         }
+        /// join the dao
         #[ink(message)]
         pub fn join_union_dao(&mut self,dao:AccountId) -> bool {
-            let mut union:Union = self.union.unwrap();
-            union.daos.insert(dao,true);
+            self.union.daos.insert(dao,true);
+            true
         }
+        /// leave a dao
         #[ink(message)]
         pub fn leave_union_dao(&mut self,dao:AccountId) -> bool {
-            let mut union:Union = self.union.unwrap();
-            union.daos.insert(dao,false);
+            self.union.daos.insert(dao,false);
+            true
         }
+        /// show all union dao
         #[ink(message)]
-        pub fn list_union_dao(&mut self) -> Vec<Account> {
+        pub fn list_union_dao(&mut self) -> Vec<AccountId> {
             let mut dao_vec = Vec::new();
-            let mut iter = self.union.values();
-            let mut key_iter = self.union.keys();
+            let mut iter = self.union.daos.values();
+            let mut key_iter = self.union.daos.keys();
             let mut category = iter.next();
             let mut name = key_iter.next();
             while category.is_some() {
@@ -218,6 +243,7 @@ mod dao_manager {
             self.check_dao_category(String::from("mother"));
             let list = self.childs_dao.entry(dao_id.clone()).or_insert(Vec::new());
             list.push(child_dao);
+            true
         }
         /// Set the dao use which template
         #[ink(message)]
@@ -231,31 +257,30 @@ mod dao_manager {
         /// params:Generate basic contract information
         /// version:Random number for generating contract
         #[ink(message)]
-        pub fn  init_by_params(&mut self, params: DAOInitParams, version: u128) -> bool {
-            let salt = version.to_le_bytes();
+        pub fn  init_by_params(
+            &mut self,
+            params: DAOInitParams,
+            version: u128,
+            base_code_hash:Hash,
+            erc20_code_hash:Hash,
+            user_code_hash:Hash,
+            setting_code_hash:Hash,
+            vault_code_hash:Hash,
+        ) -> bool {
             assert_eq!(self.active, false);
             assert_eq!(self.template.is_some(), true);
             let owner = self.env().caller();
             assert_eq!(owner == self.creator, true);
-            let components_hash_map = self.template.as_ref().unwrap().components.clone();
-            let base_code_hash = components_hash_map.get("BASE");
-            let erc20_code_hash = components_hash_map.get("ERC20");
-            let user_code_hash = components_hash_map.get("USER");
-            let setting_code_hash = components_hash_map.get("SETTING");
-            let vault_code_hash = components_hash_map.get("VAULT");
-            self._init_base(base_code_hash, params.base, &salt);
-            self._init_erc20(erc20_code_hash, params.erc20, &salt);
-            self._init_user(user_code_hash, &salt);
-            self._init_vault(vault_code_hash, &salt);
-
+            self._init_setting(setting_code_hash,version);
+            self._init_base(base_code_hash, params.base, version);
+            self._init_erc20(erc20_code_hash, params.erc20, version);
+            self._init_user(user_code_hash, version);
+            self._init_vault(vault_code_hash, version);
             true
         }
         /// init vault
-        fn _init_vault(&mut self, vault_code_hash: Option<&Hash>, salt: &Vec<u8>) -> bool {
-            if vault_code_hash.is_none() {
-                return true;
-            }
-            let vault_code_hash = vault_code_hash.unwrap().clone();
+        fn _init_vault(&mut self, vault_code_hash: Hash, version: u128) -> bool {
+            let salt = version.to_le_bytes();
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             // instance org
@@ -274,11 +299,8 @@ mod dao_manager {
         }
 
         /// init setting
-        fn _init_setting(&mut self, setting_code_hash: Option<&Hash>, salt: &Vec<u8>) -> bool {
-            if setting_code_hash.is_none() {
-                return true;
-            }
-            let setting_code_hash = setting_code_hash.unwrap().clone();
+        fn _init_setting(&mut self, setting_code_hash: Hash, version: u128) -> bool {
+            let salt = version.to_le_bytes();
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             let setting_instance_params = DaoSetting::new(self.env().caller())
@@ -288,19 +310,16 @@ mod dao_manager {
                 .params();
             let setting_init_result = ink_env::instantiate_contract(&setting_instance_params);
             let setting_addr = setting_init_result.expect("failed at instantiating the `setting` contract");
-            let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(setting_addr);
+            let  setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(setting_addr);
             self.components.dao_setting = Some(setting_instance);
             self.component_addrs.dao_setting_addr = Some(setting_addr);
             true
         }
 
         /// init base
-        fn _init_base(&mut self, base_code_hash: Option<&Hash>,
-                      param: BaseParam, salt: &Vec<u8>) -> bool {
-            if base_code_hash.is_none() {
-                return true;
-            }
-            let base_code_hash = base_code_hash.unwrap().clone();
+        fn _init_base(&mut self, base_code_hash: Hash,
+                      param: BaseParam, version: u128) -> bool {
+            let salt = version.to_le_bytes();
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             // instance base
@@ -321,11 +340,8 @@ mod dao_manager {
             true
         }
         /// init user
-        fn _init_user(&mut self,user_code_hash:Option<&Hash>,salt: &Vec<u8>) -> bool {
-            if user_code_hash.is_none() {
-                return true;
-            }
-            let user_code_hash = user_code_hash.unwrap().clone();
+        fn _init_user(&mut self,user_code_hash:Hash,version: u128) -> bool {
+            let salt = version.to_le_bytes();
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             // let vault_addr = self.component_addrs.vault_addr.unwrap();
@@ -336,7 +352,7 @@ mod dao_manager {
                 .params();
             let user_init_result = ink_env::instantiate_contract(&user_instance_params);
             let user_addr = user_init_result.expect("failed at instantiating the `user` contract");
-            let mut user_instance: DaoUsers = ink_env::call::FromAccountId::from_account_id(user_addr);
+            let  user_instance: DaoUsers = ink_env::call::FromAccountId::from_account_id(user_addr);
             self.components.dao_users = Some(user_instance);
             self.component_addrs.dao_users_addr = Some(user_addr);
             true
@@ -345,12 +361,10 @@ mod dao_manager {
             assert!(self.category == category);
         }
         /// init erc20
-        fn _init_erc20(&mut self, erc20_code_hash: Option<&Hash>,
-                       param: ERC20Param, salt: &Vec<u8>) -> bool {
-            if erc20_code_hash.is_none() {
-                return true;
-            }
-            let erc20_code_hash = erc20_code_hash.unwrap().clone();
+        fn _init_erc20(&mut self, erc20_code_hash: Hash,
+                       param: ERC20Param, version: u128) -> bool {
+            let salt = version.to_le_bytes();
+
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
             // let vault_addr = self.component_addrs.vault_addr.unwrap();
@@ -362,39 +376,24 @@ mod dao_manager {
                 .params();
             let erc20_init_result = ink_env::instantiate_contract(&erc20_instance_params);
             let erc20_addr = erc20_init_result.expect("failed at instantiating the `Erc20` contract");
-            let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(erc20_addr);
+            let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(erc20_addr);
             self.components.erc20 = Some(erc20_instance);
             self.component_addrs.erc20_addr = Some(erc20_addr);
             true
         }
-
     }
 
-    // /// Unit tests in Rust are normally defined within such a `#[cfg(test)]`
-    // /// module and test functions are marked with a `#[test]` attribute.
-    // /// The below code is technically just normal Rust code.
-    // #[cfg(test)]
-    // mod tests {
-    //     /// Imports all the definitions from the outer scope so we can use them here.
-    //     use super::*;
-    //
-    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
-    //     use ink_lang as ink;
-    //
-    //     /// We test if the default constructor does its job.
-    //     #[ink::test]
-    //     fn default_works() {
-    //         let daoManager = DaoManage::default();
-    //         assert_eq!(daoManage.get(), false);
-    //     }
-    //
-    //     /// We test a simple use case of our contract.
-    //     #[ink::test]
-    //     fn it_works() {
-    //         let mut daoManage = DaoManage::new(false);
-    //         assert_eq!(daoManage.get(), false);
-    //         daoManage.flip();
-    //         assert_eq!(daoManage.get(), true);
-    //     }
-    // }
+    #[cfg(test)]
+    mod tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+        #[ink::test]
+        fn it_works() {
+            let mut dao_manage = DAOManager::new(AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),1,1,String::from("union"));
+            assert!(dao_manage.join_union_dao(AccountId::from([0x01; 32])) == true);
+            assert!(dao_manage.leave_union_dao(AccountId::from([0x01; 32])) == true);
+        }
+    }
 }

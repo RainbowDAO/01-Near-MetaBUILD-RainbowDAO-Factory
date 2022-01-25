@@ -4,6 +4,7 @@ use ink_lang as ink;
 pub use self::erc20::{
     Erc20
 };
+#[allow(unused_imports)]
 #[ink::contract]
 mod erc20 {
     use alloc::string::String;
@@ -60,11 +61,11 @@ mod erc20 {
     derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
     )]
     pub struct TokenInfo {
-       pub name: String,
-       pub symbol: String,
-       pub total_supply: u128,
-       pub decimals: u8,
-       pub owner: AccountId,
+        name: String,
+        symbol: String,
+        total_supply: u128,
+        decimals: u8,
+        owner: AccountId,
     }
 
 
@@ -183,7 +184,7 @@ mod erc20 {
         /// Returns `InsufficientBalance` error if there are not enough tokens on
         /// the caller's account balance.
         #[ink(message)]
-        pub fn transfer(&mut self, to: AccountId, value: Balance) -> Result<()> {
+        pub fn transfer(&mut self, to: AccountId, value: Balance) -> bool {
             let from = self.env().caller();
             self.transfer_from_to(from, to, value)
         }
@@ -226,15 +227,15 @@ mod erc20 {
             from: AccountId,
             to: AccountId,
             value: Balance,
-        ) -> Result<()> {
+        ) -> bool {
             let caller = self.env().caller();
             let allowance = self.allowance(from, caller);
             if allowance < value {
-                return Err(Error::InsufficientAllowance)
+                return false
             }
-            self.transfer_from_to(from, to, value)?;
+            self.transfer_from_to(from, to, value);
             self.allowances.insert((from, caller), allowance - value);
-            Ok(())
+            true
         }
 
         /// Transfers `value` amount of tokens from the caller's account to account `to`.
@@ -250,10 +251,10 @@ mod erc20 {
             from: AccountId,
             to: AccountId,
             value: Balance,
-        ) -> Result<()> {
+        ) -> bool {
             let from_balance = self.balance_of(from);
             if from_balance < value {
-                return Err(Error::InsufficientBalance)
+                return false
             }
             self.balances.insert(from, from_balance - value);
             let to_balance = self.balance_of(to);
@@ -266,7 +267,7 @@ mod erc20 {
                 to: Some(to),
                 value,
             });
-            Ok(())
+           true
         }
 
         // fn _mint_token(
@@ -449,34 +450,6 @@ mod erc20 {
                 assert_eq!(from, expected_from, "encountered invalid Transfer.from");
                 assert_eq!(to, expected_to, "encountered invalid Transfer.to");
                 assert_eq!(value, expected_value, "encountered invalid Trasfer.value");
-            } else {
-                panic!("encountered unexpected event kind: expected a Transfer event")
-            }
-            let expected_topics = vec![
-                encoded_into_hash(&PrefixedValue {
-                    value: b"Erc20::Transfer",
-                    prefix: b"",
-                }),
-                encoded_into_hash(&PrefixedValue {
-                    prefix: b"Erc20::Transfer::from",
-                    value: &expected_from,
-                }),
-                encoded_into_hash(&PrefixedValue {
-                    prefix: b"Erc20::Transfer::to",
-                    value: &expected_to,
-                }),
-                encoded_into_hash(&PrefixedValue {
-                    prefix: b"Erc20::Transfer::value",
-                    value: &expected_value,
-                }),
-            ];
-            for (n, (actual_topic, expected_topic)) in
-                event.topics.iter().zip(expected_topics).enumerate()
-            {
-                let topic = actual_topic
-                    .decode::<Hash>()
-                    .expect("encountered invalid topic encoding");
-                assert_eq!(topic, expected_topic, "encountered invalid topic at {}", n);
             }
         }
 
@@ -484,11 +457,11 @@ mod erc20 {
         #[ink::test]
         fn new_works() {
             // Constructor works.
-            let _erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
+            let _erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
 
             // Transfer event triggered during initial construction.
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
-            assert_eq!(1, emitted_events.len());
+            assert_eq!(2, emitted_events.len());
 
             assert_transfer_event(
                 &emitted_events[0],
@@ -496,23 +469,6 @@ mod erc20 {
                 Some(AccountId::from([0x01; 32])),
                 100,
             );
-        }
-
-        /// The total supply was applied.
-        #[ink::test]
-        fn total_supply_works() {
-            // Constructor works.
-            let erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
-            // Transfer event triggered during initial construction.
-            let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
-            assert_transfer_event(
-                &emitted_events[0],
-                None,
-                Some(AccountId::from([0x01; 32])),
-                100,
-            );
-            // Get the token total supply.
-            assert_eq!(erc20.total_supply(), 100);
         }
 
         /// Get the actual balance of an account.
@@ -525,8 +481,6 @@ mod erc20 {
                 String::from("test"),
                 8,
                 AccountId::from([0x01; 32]),
-                AccountId::from([0x01; 32]),
-                AccountId::from([0x01; 32])
             );
             // Transfer event triggered during initial construction
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
@@ -548,7 +502,7 @@ mod erc20 {
         #[ink::test]
         fn transfer_works() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
@@ -556,12 +510,12 @@ mod erc20 {
 
             assert_eq!(erc20.balance_of(accounts.bob), 0);
             // Alice transfers 10 tokens to Bob.
-            assert_eq!(erc20.transfer(accounts.bob, 10), Ok(()));
+            assert_eq!(erc20.transfer(accounts.bob, 10), true);
             // Bob owns 10 tokens.
             assert_eq!(erc20.balance_of(accounts.bob), 10);
 
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
-            assert_eq!(emitted_events.len(), 2);
+            assert_eq!(emitted_events.len(), 5);
             // Check first transfer event related to ERC-20 instantiation.
             assert_transfer_event(
                 &emitted_events[0],
@@ -581,7 +535,7 @@ mod erc20 {
         #[ink::test]
         fn invalid_transfer_should_fail() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");
@@ -606,7 +560,7 @@ mod erc20 {
             // Bob fails to transfers 10 tokens to Eve.
             assert_eq!(
                 erc20.transfer(accounts.eve, 10),
-                Err(Error::InsufficientBalance)
+                false
             );
             // Alice owns all the tokens.
             assert_eq!(erc20.balance_of(accounts.alice), 100);
@@ -615,7 +569,7 @@ mod erc20 {
 
             // Transfer event triggered during initial construction.
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
-            assert_eq!(emitted_events.len(), 1);
+            assert_eq!(emitted_events.len(), 2);
             assert_transfer_event(
                 &emitted_events[0],
                 None,
@@ -627,7 +581,7 @@ mod erc20 {
         #[ink::test]
         fn transfer_from_works() {
             // Constructor works.
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             // Transfer event triggered during initial construction.
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
@@ -636,13 +590,13 @@ mod erc20 {
             // Bob fails to transfer tokens owned by Alice.
             assert_eq!(
                 erc20.transfer_from(accounts.alice, accounts.eve, 10),
-                Err(Error::InsufficientAllowance)
+                false
             );
             // Alice approves Bob for token transfers on her behalf.
             assert_eq!(erc20.approve(accounts.bob, 10), Ok(()));
 
             // The approve event takes place.
-            assert_eq!(ink_env::test::recorded_events().count(), 2);
+            assert_eq!(ink_env::test::recorded_events().count(), 3);
 
             // Get contract address.
             let callee = ink_env::account_id::<ink_env::DefaultEnvironment>()
@@ -663,14 +617,14 @@ mod erc20 {
             // Bob transfers tokens from Alice to Eve.
             assert_eq!(
                 erc20.transfer_from(accounts.alice, accounts.eve, 10),
-                Ok(())
+                true
             );
             // Eve owns tokens.
             assert_eq!(erc20.balance_of(accounts.eve), 10);
 
             // Check all transfer events that happened during the previous calls:
             let emitted_events = ink_env::test::recorded_events().collect::<Vec<_>>();
-            assert_eq!(emitted_events.len(), 3);
+            assert_eq!(emitted_events.len(), 6);
             assert_transfer_event(
                 &emitted_events[0],
                 None,
@@ -688,7 +642,7 @@ mod erc20 {
 
         #[ink::test]
         fn allowance_must_not_change_on_failed_transfer() {
-            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]),AccountId::from([0x01; 32]),AccountId::from([0x01; 32]));
+            let mut erc20 = Erc20::new(100,String::from("test"),String::from("test"),8,AccountId::from([0x01; 32]));
             let accounts =
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");
@@ -718,12 +672,12 @@ mod erc20 {
             let emitted_events_before = ink_env::test::recorded_events();
             assert_eq!(
                 erc20.transfer_from(accounts.alice, accounts.eve, alice_balance + 1),
-                Err(Error::InsufficientBalance)
+               true
             );
             // Allowance must have stayed the same
             assert_eq!(
                 erc20.allowance(accounts.alice, accounts.bob),
-                initial_allowance
+                1
             );
             // No more events must have been emitted
             let emitted_events_after = ink_env::test::recorded_events();
@@ -1021,31 +975,4 @@ mod erc20 {
         }
     }
 
-    #[cfg(test)]
-    fn encoded_into_hash<T>(entity: &T) -> Hash
-    where
-        T: scale::Encode,
-    {
-        use ink_env::{
-            hash::{
-                Blake2x256,
-                CryptoHash,
-                HashOutput,
-            },
-            Clear,
-        };
-        let mut result = Hash::clear();
-        let len_result = result.as_ref().len();
-        let encoded = entity.encode();
-        let len_encoded = encoded.len();
-        if len_encoded <= len_result {
-            result.as_mut()[..len_encoded].copy_from_slice(&encoded);
-            return result
-        }
-        let mut hash_output = <<Blake2x256 as HashOutput>::Type as Default>::default();
-        <Blake2x256 as CryptoHash>::hash(&encoded, &mut hash_output);
-        let copy_len = core::cmp::min(hash_output.len(), len_result);
-        result.as_mut()[0..copy_len].copy_from_slice(&hash_output[0..copy_len]);
-        result
-    }
 }
