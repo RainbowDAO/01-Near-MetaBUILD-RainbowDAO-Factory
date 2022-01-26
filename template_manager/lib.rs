@@ -130,4 +130,23 @@ mod template_manager {
             self.template_map.get(&index).unwrap().clone()
         }
     }
+    #[cfg(test)]
+    mod tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+        /// We test a simple use case of our contract.
+        #[ink::test]
+        fn it_works() {
+            let mut dao_users = DaoUsers::new(AccountId::from([0x01; 32]));
+            assert!(dao_users.add_group(Group {id:0,
+                name:String::from("test"),
+                join_directly:true,
+                is_open:true,
+                users:BTreeMap::new(),
+                manager:AccountId::from([0x01; 32])
+            }) == true);
+        }
+    }
 }

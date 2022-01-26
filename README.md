@@ -1,79 +1,58 @@
-# RainbowDAO-Protocol-Ink-Test-Version-01
-RainbowDAO Protocol Ink! Test Version 01
-
-![](https://raw.githubusercontent.com/RainbowDAO/Gitcoin/main/pic/0.png)
-
-
-
-# RainbowDAO 
-
-## Multi-chain DAO Infrastructure Service Protocol
-
-
-
-
-- ## Project Q&A
+# RainbowDAO-Protocol-ink-Phase-2
+## Contract introduction
+- dao_base: This contract is used to set and read the basic information of Dao.
+- dao_category:This contract is used to control the type of Dao. Various types can be set here, such as alliance, mother child and independence.
+- dao_factory:This is the factory contract of Dao, which is used to generate all kinds of Dao
+- dao_manager:At this time, the contract of Dao is only used to manage all kinds of things of Dao. And initialize various other peripheral contracts. It can be said that this is the core of Dao.
+- dao_proposal:This is the governance contract of Dao, which is used to vote and manage the size of Dao transactions.
+- dao_setting:This is the basic setting contract of Dao, which controls the joining restrictions of various Dao.
+- dao_users:It controls the departments and members of the whole Dao.
+- dao_vault:This is the vault of Dao, which controls the token transfer and record of Dao.
+- template_manager: The template of Dao is controlled here, which can be selected when generating Dao.
 
 
 
+## Installing
 
-### 1、What is the RainbowDAO Protocol? 
+Please make sure that you have these prerequisites installed on your computer:
 
+```bash
+rustup component add rust-src --toolchain nightly
+rustup target add wasm32-unknown-unknown --toolchain stable
+```
 
-RainbowDAO Protocol is developed under the authorization of the Rainbowcity  Foundation, focusing on the creation of web3 basic component. RainbowDAO Protocol belongs to a multi-chain infrastructure service protocol.  Anyone can create and manage their own DAO organization through RainbowDAO Protocol, including independent DAO,alliance DAO, parent DAO and child DAO. Any DAO can also create a management department within the DAO to achieve multi-level management of the organization.
+Then you have to install ink! command line utility which will make setting up Substrate smart contract projects easier:
 
+```bash
+cargo install cargo-contract --vers 0.15.0 --force --locked
+```
 
+You also need the [binaryen](https://github.com/WebAssembly/binaryen) package installed on your computer which is used to optimize the WebAssembly bytecode of the contract, you can use npm to install it:
 
-### 2、What is the Rainbowcity Foundation？
+```bash
+npm install -g binaryen
+```
 
+## Testing
 
+First of all you need to clone the repository, run:
 
-Rainbowcity Foundation is a non-profit foundation initiated and founded by Mr. RainbowKun. Headquartered in Singapore, Asia, it mainly engages in the incubation and investment of the crypto ecosystem. Mr. RainbowKun himself is a loyal fan of Bitcoin and a believer of Satoshi Nakamoto, dedicated to the spread of Satoshi Nakamoto's decentralized ideas. He once put forward the concept of "Bit Civilization" for the first time in the world in July 2021 at the Bitcointalk Forum established by Satoshi Nakamoto , hoping to promote the development of the encryption industry worldwide and practice the true Bitcoin spirit.
+```bash
+git clone https://github.com/RainbowcityFoundation/RainbowDAO-Protocol-Ink-milestone_2.git
+cd RainbowDAO-Protocol-Ink-milestone_2
+```
 
+Then, You can enter any folder and enter the following command.
 
+```bash
+cargo +nightly test
+```
 
-Mr. Rainbow Kun believes that in the crypto world, human civilization will have an unprecedented super economy in the future. It is constructed in the form of a decentralized protocol, which puts different and decentralized economic behaviors into a unified economy, and truly becomes the infrastructure of future human civilization in the future. The Rainbow city Foundation was established under this background.
+## Building
 
-The Rainbowcity Foundation plans to invest in 7 major areas in the next ten years, including Rainbow DeFi, Rainbow Investment, Rainbow Culture, Rainbow Network, Rainbow Industry, Rainbow Education and Rainbow R&D. Strive to become a super economy with a market value of one trillion US dollars. The RainbowDAO Protocol is the first project launched by the Rainbowcity Foundation to build the infrastructure of the DAO ecosystem and contribute our wisdom and strength to the development of the global DAO career.
+To build the WASM of your contract and metadata, You can enter any folder and enter the following command.
+```bash
+cargo +nightly contract build
+```
 
-
-
-### 3、What are the social media of the RainbowDAO Protocol?
-
-
-
-Since our project is officially open globally for the first time, our social media has just been launched. Welcome everyone to join our various social media to learn more about our project and become an early contributor to our project.
-
-
-
-- #### Twitter:    https://twitter.com/RainbowcityDAO
-
-- #### Discord     https://discord.gg/SUBJAcdhS4   
-
-- #### Telegram: https://t.me/RainbowDAO
-
-- #### Medium:   https://medium.com/rainbowcity
-
-- #### Github:    https://github.com/RainbowDAO
-
-- #### Email： RainbowcityKun@gmail.com
-
-- #### RainbowDAO website ：http://www.rainbowdao.io
-
-- #### Rainbowcity website ：https://www.rainbowcity.io
-
-
-
-
-### 4、In which chains will the RainbowDAO Protocol be deployed in the future?
-
-
-
-There are two versions of RainbowDAO Protocol, Solidity version on EVM and Ink! version on WASM.The Solidity version is mainly deployed on Ethereum, BSC, Poygon, Avalanche, Fantom, and various L2 networks; the Ink! version is mainly deployed on the parallel chains on the Polkadot and Kusama relay chains, as well as other blockchains developed with the substrate framework. 
-
-In the future, we will participate in the parachain auctions of the Polkadot network and the Kusama network to create a parachain with DAO  infrastructure service as the core.
-
-
-
-![image](https://raw.githubusercontent.com/RainbowDAO/Gitcoin/main/pic/1.png)
 
