@@ -13,6 +13,7 @@ mod dao_manager {
     use dao_base::DaoBase;
     use dao_users::DaoUsers;
     use dao_setting::DaoSetting;
+    use dao_proposal::DaoProposal;
     use erc20::Erc20;
     use dao_vault::VaultManager;
     use ink_prelude::vec::Vec;
@@ -42,6 +43,7 @@ mod dao_manager {
         pub dao_users:Option<DaoUsers>,
         pub dao_setting:Option<DaoSetting>,
         pub vault: Option<VaultManager>,
+        pub proposal: Option<DaoProposal>,
         //    github: Option<Github>,
     }
 
@@ -90,6 +92,7 @@ mod dao_manager {
         // pub vault: Option<VaultManager>,
         // vote module contract's address
         pub vault_addr: Option<AccountId>,
+        pub proposal_addr: Option<AccountId>,
     }
     /// the erc20 param
     #[derive(
@@ -165,13 +168,15 @@ mod dao_manager {
                     dao_users:None,
                     dao_setting:None,
                     vault:None,
+                    proposal:None
                 },
                 component_addrs:DAOComponentAddrs{
                     base_addr:None,
                     erc20_addr:None,
                     dao_users_addr:None,
                     dao_setting_addr:None,
-                    vault_addr:None
+                    vault_addr:None,
+                    proposal_addr:None
                 },
                 category,
                 union:Union{
@@ -266,16 +271,34 @@ mod dao_manager {
             user_code_hash:Hash,
             setting_code_hash:Hash,
             vault_code_hash:Hash,
+            proposal_code_hash:Hash,
         ) -> bool {
-            assert_eq!(self.active, false);
-            assert_eq!(self.template.is_some(), true);
-            let owner = self.env().caller();
-            assert_eq!(owner == self.creator, true);
+            assert!(self.active == false, "not enough unit to instance contract");
             self._init_setting(setting_code_hash,version);
             self._init_base(base_code_hash, params.base, version);
             self._init_erc20(erc20_code_hash, params.erc20, version);
             self._init_user(user_code_hash, version);
             self._init_vault(vault_code_hash, version);
+            self._init_proposal(proposal_code_hash, version);
+            self.active = true;
+            true
+        }
+        fn _init_proposal(&mut self, proposal_code_hash: Hash, version: u128) -> bool {
+            let salt = version.to_le_bytes();
+            let total_balance = Self::env().balance();
+            assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
+            // instance org
+            // let salt = version.to_le_bytes();
+            let proposal_instance_params = DaoProposal::new(self.env().caller(),self.component_addrs.erc20_addr.unwrap())
+                .endowment(CONTRACT_INIT_BALANCE)
+                .code_hash(proposal_code_hash)
+                .salt_bytes(salt)
+                .params();
+            let proposal_init_result = ink_env::instantiate_contract(&proposal_instance_params);
+            let proposal_addr = proposal_init_result.expect("failed at instantiating the `vault` contract");
+            let proposal_instance: DaoProposal = ink_env::call::FromAccountId::from_account_id(proposal_addr);
+            self.components.proposal = Some(proposal_instance);
+            self.component_addrs.proposal_addr = Some(proposal_addr);
             true
         }
         /// init vault

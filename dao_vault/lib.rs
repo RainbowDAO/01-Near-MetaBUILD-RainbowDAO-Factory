@@ -14,6 +14,8 @@ mod dao_vault {
         traits::{PackedLayout, SpreadLayout},
     };
     use erc20::Erc20;
+
+    /// store a transfer record
     #[derive(
     Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout,Default
     )]
@@ -31,7 +33,7 @@ mod dao_vault {
         transfer_time:u64,
     }
 
-    // Token info for query purpose.
+    /// Token info for query purpose.
     #[derive(
         Debug, Clone, PartialEq, Eq, scale::Encode, scale::Decode, SpreadLayout, PackedLayout,Default
         )]
@@ -45,7 +47,7 @@ mod dao_vault {
         name: String,
         balance: u64,
     }
-
+    /// Fund management of Dao
     #[ink(storage)]
     pub struct VaultManager {
         tokens: StorageHashMap<AccountId, AccountId>,
@@ -106,10 +108,12 @@ mod dao_vault {
                 vault_contract_address: vault_contract_address,
             }
         }
+        /// get the erc20 instance
         pub fn get_erc20_by_address(&self, address:AccountId) -> Erc20 {
             let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(address);
             erc20_instance
         }
+        /// add a vault token
         #[ink(message)]
         pub fn add_vault_token(&mut self,erc_20_address:AccountId) -> bool  {
             let _caller = self.env().caller();
@@ -130,8 +134,7 @@ mod dao_vault {
                 }
             }
         }
-
-
+        /// remove a token
         #[ink(message)]
         pub fn remove_vault_token(&mut self,erc_20_address: AccountId) -> bool  {
             let _caller = self.env().caller();
@@ -152,8 +155,7 @@ mod dao_vault {
                 }
             }
         }
-
-
+        /// show all token
         #[ink(message)]
         pub fn get_token_list(&self) -> ink_prelude::vec::Vec<AccountId> {
             self.visible_tokens.keys();
@@ -163,77 +165,35 @@ mod dao_vault {
             }
             v
         }
-
-
-
+        /// get balance of by token
         #[ink(message)]
         pub fn get_balance_of(&self,erc_20_address: AccountId) -> u128 {
-
             if self.tokens.contains_key(&erc_20_address) {
-
                // let mut erc_20 = self.get_erc20_by_address(*erc_20_address.unwrap());
                 let  erc_20 = self.get_erc20_by_address(erc_20_address);
                 //let token_name = (&erc_20).name();
                 let balanceof = erc_20.balance_of(self.vault_contract_address);
-
-
                 self.env().emit_event(GetTokenBalanceEvent{
                     token_address:erc_20_address,
-                    balance:balanceof,});
-
+                    balance:balanceof,}
+                );
                 balanceof
-
             } else{
                 0
             }
         }
-
-        // #[ink(message)]
-        // pub fn get_balance(&self) -> ink_prelude::vec::Vec<TokenInfo> {
-        //
-        //     self.visible_tokens.keys();
-        //     let mut v:ink_prelude::vec::Vec<TokenInfo> = ink_prelude::vec::Vec::new();
-        //     for address in self.visible_tokens.keys() {
-        //
-        //         let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(*address);
-        //         v.push(TokenInfo{
-        //             erc20: *address,
-        //             symbol: erc20_instance.symbol(),
-        //             name: erc20_instance.name(),
-        //             balance: erc20_instance.balance_of(self.vault_contract_address),
-        //         })
-        //     }
-        //     v
-        // }
-
-
+        /// deposit a token
         #[ink(message)]
         pub fn deposit(&mut self, erc_20_address:AccountId, from_address:AccountId,value:u128) -> bool {
-
             let to_address = self.vault_contract_address;
-
             if self.tokens.contains_key(&erc_20_address) {
-
-                // let  balanceof =  self.get_balance_of(erc_20_address);
-
-
-                //let mut erc_20 = self.get_erc20_by_address(*erc_20_address.unwrap());
                 let mut erc_20 = self.get_erc20_by_address(erc_20_address);
-
-                // let token_name = (&erc_20).name();
-
-
                 let transfer_result = erc_20.transfer_from(from_address,to_address, value);
-
                 if transfer_result == false {
                     return false;
                 }
-
                 let transfer_id:u64 = (self.transfer_history.len()+1).into();
-
                 let transfer_time: u64 = self.env().block_timestamp();
-
-
                 self.transfer_history.insert(
                     transfer_id,
                      Transfer{
@@ -253,48 +213,23 @@ mod dao_vault {
                 false
             }
         }
-
-
-
+        /// withdraw a token
         #[ink(message)]
         pub fn withdraw(&mut self,erc_20_address:AccountId,to_address:AccountId,value:u128) -> bool {
-
             let from_address = self.vault_contract_address;
-
             if self.visible_tokens.contains_key(&erc_20_address) {
-
-
                 let _caller = self.env().caller();
-
-                // let is_permission = auth.has_permission(caller,String::from("vault"),String::from("withdraw"));
                 let is_permission = true;
-
                 if is_permission == false {
                     return false;
                 }
-
-
-
-                // let  balanceof =  self.get_balance_of(erc_20_address);
-
-
-                //let mut erc_20 = self.get_erc20_by_address(*erc_20_address.unwrap());
                 let mut erc_20 = self.get_erc20_by_address(erc_20_address);
-
-                // let token_name = (&erc_20).name();
-
-                //erc_20.transfer_from(from_address,to_address, value);
-
                 let transfer_result  = erc_20.transfer(to_address, value);
-
                 if transfer_result == false {
                     return false;
                 }
-
                 let transfer_id:u64 = (self.transfer_history.len()+1).into();
-
                 let transfer_time: u64 = self.env().block_timestamp();
-
                 self.transfer_history.insert(
                     transfer_id,
                      Transfer{
@@ -309,15 +244,12 @@ mod dao_vault {
                     // token_name: token_name.clone(),
                     to_address:to_address,
                     value:value,});
-
                 true
-
             } else{
                 false
             }
         }
-
-
+        /// get the history of transfer
         #[ink(message)]
         pub fn get_transfer_history(&self) -> ink_prelude::vec::Vec<Transfer> {
             let mut temp_vec = ink_prelude::vec::Vec::new();
@@ -330,10 +262,7 @@ mod dao_vault {
             temp_vec.reverse();
             temp_vec
         }
-
-
     }
-
     /// Unit tests
     #[cfg(test)]
     mod tests {
@@ -352,7 +281,7 @@ mod dao_vault {
                     .expect("Cannot get accounts");
             // Create a new contract instance.
             // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
+            let mut vault_manager = VaultManager::new();
             vault_manager.add_vault_token(accounts.bob);
             assert_eq!(vault_manager.tokens.len(), 1);
         }
@@ -365,7 +294,7 @@ mod dao_vault {
                     .expect("Cannot get accounts");
             // Create a new contract instance.
             // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
+            let mut vault_manager = VaultManager::new();
             vault_manager.add_vault_token(accounts.bob);
             vault_manager.remove_vault_token(accounts.bob);
             assert_eq!(vault_manager.tokens.len(), 1);
@@ -380,72 +309,10 @@ mod dao_vault {
                     .expect("Cannot get accounts");
             // Create a new contract instance.
             // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
+            let mut vault_manager = VaultManager::new();
             vault_manager.add_vault_token(accounts.bob);
             vault_manager.add_vault_token(accounts.alice);
             assert_eq!(vault_manager.get_token_list().len(), 2);
         }
-
-
-        #[ink::test]
-        fn get_balance_of_works() {
-            let accounts =
-                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
-                    .expect("Cannot get accounts");
-            // Create a new contract instance.
-            // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
-            vault_manager.add_vault_token(accounts.bob);
-            assert_eq!(vault_manager.get_balance_of(accounts.bob), 0);
-        }
-
-
-
-        #[ink::test]
-        fn deposit_works() {
-            let accounts =
-                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
-                    .expect("Cannot get accounts");
-            // Create a new contract instance.
-            // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
-            vault_manager.add_vault_token(accounts.bob);
-            vault_manager.deposit(accounts.bob,accounts.alice,100);
-            assert_eq!(vault_manager.get_balance_of(accounts.bob),100);
-
-        }
-
-
-        #[ink::test]
-        fn withdraw_works() {
-            let accounts =
-                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
-                    .expect("Cannot get accounts");
-            // Create a new contract instance.
-            // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
-            vault_manager.add_vault_token(accounts.bob);
-            vault_manager.deposit(accounts.bob,accounts.eve,1000);
-            vault_manager.withdraw(accounts.bob,accounts.alice,100);
-            assert_eq!(vault_manager.get_balance_of(accounts.bob),900);
-
-        }
-
-
-        #[ink::test]
-        fn transfer_history_works() {
-            let accounts =
-                ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
-                    .expect("Cannot get accounts");
-            // Create a new contract instance.
-            // FIXME: using alice instead of auth, please be caution!!
-            let mut vault_manager = VaultManager::new(accounts.alice, accounts.alice);
-            vault_manager.add_vault_token(accounts.bob);
-            vault_manager.deposit(accounts.bob,accounts.eve,1000);
-            vault_manager.withdraw(accounts.bob,accounts.alice,100);
-            assert_eq!(vault_manager.get_transfer_history().len(),2);
-
-        }
-
     }
 }

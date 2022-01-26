@@ -61,11 +61,11 @@ mod erc20 {
     derive(scale_info::TypeInfo, ink_storage::traits::StorageLayout)
     )]
     pub struct TokenInfo {
-        name: String,
-        symbol: String,
-        total_supply: u128,
-        decimals: u8,
-        owner: AccountId,
+       pub name: String,
+       pub symbol: String,
+       pub total_supply: u128,
+       pub decimals: u8,
+       pub owner: AccountId,
     }
 
 

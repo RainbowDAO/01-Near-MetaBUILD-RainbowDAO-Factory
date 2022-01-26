@@ -98,7 +98,7 @@ mod dao_users {
         /// join the dao
         #[ink(message)]
         pub fn join(&mut self) ->bool {
-            let mut setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(self.setting_addr);
+            let  setting_instance: DaoSetting = ink_env::call::FromAccountId::from_account_id(self.setting_addr);
             let condition =  setting_instance.get_conditions();
             let fee_limit = setting_instance.get_fee_setting();
             if condition == 2 {
@@ -107,7 +107,7 @@ mod dao_users {
                 erc20_instance.transfer_from(Self::env().caller(),AccountId::default(),fee_limit.fee_limit); //todo 修改打入地址
                 self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
             } else if condition == 4 {
-                let mut erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(fee_limit.token);
+                let  erc20_instance: Erc20 = ink_env::call::FromAccountId::from_account_id(fee_limit.token);
                 let other_limit = setting_instance.get_other_setting();
                 if other_limit.use_token {
                     assert_eq!(erc20_instance.balance_of(self.env().caller()) >= other_limit.token_balance_limit, true);
@@ -126,7 +126,7 @@ mod dao_users {
         /// Check whether the user has joined
         #[ink(message)]
         pub fn verify_user(&mut self,index:u128,user:AccountId) -> bool {
-            let mut group =  self.group.get_mut(&index).unwrap();
+            let  group =  self.group.get_mut(&index).unwrap();
             assert_eq!(group.id > 0, true);
             group.users.insert(user,true);
             true
@@ -136,10 +136,10 @@ mod dao_users {
         /// index:the id of group
         #[ink(message)]
         pub fn join_group(&mut self,index:u128) -> bool {
-            let mut group =  self.group.get_mut(&index).unwrap();
+            let  group =  self.group.get_mut(&index).unwrap();
             let caller = Self::env().caller();
             assert_eq!(group.id > 0, true);
-            let mut user_group = self.user_group.get_mut(&(caller,index)).unwrap();
+            // let mut user_group = self.user_group.get_mut(&(caller,index)).unwrap();
             if group.join_directly == false {
                 group.users.insert(caller,false);
             }else{
@@ -183,28 +183,23 @@ mod dao_users {
     }
 
 
-    // #[cfg(test)]
-    // mod tests {
-    //     /// Imports all the definitions from the outer scope so we can use them here.
-    //     use super::*;
-    //
-    //     /// Imports `ink_lang` so we can use `#[ink::test]`.
-    //     use ink_lang as ink;
-    //
-    //     /// We test if the default constructor does its job.
-    //     #[ink::test]
-    //     fn default_works() {
-    //         let daoUsers = DaoUsers::default();
-    //         assert_eq!(daoUsers.get(), false);
-    //     }
-    //
-    //     /// We test a simple use case of our contract.
-    //     #[ink::test]
-    //     fn it_works() {
-    //         let mut daoUsers = DaoUsers::new(false);
-    //         assert_eq!(daoUsers.get(), false);
-    //         daoUsers.flip();
-    //         assert_eq!(daoUsers.get(), true);
-    //     }
-    // }
+    #[cfg(test)]
+    mod tests {
+        /// Imports all the definitions from the outer scope so we can use them here.
+        use super::*;
+        /// Imports `ink_lang` so we can use `#[ink::test]`.
+        use ink_lang as ink;
+        /// We test a simple use case of our contract.
+        #[ink::test]
+        fn it_works() {
+            let mut dao_users = DaoUsers::new(AccountId::from([0x01; 32]));
+            assert!(dao_users.add_group(Group {id:0,
+                name:String::from("test"),
+                join_directly:true,
+                is_open:true,
+                users:BTreeMap::new(),
+                manager:AccountId::from([0x01; 32])
+            }) == true);
+        }
+    }
 }

@@ -1,5 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 extern crate alloc;
+pub use self::dao_proposal::DaoProposal;
 
 use ink_lang as ink;
 #[allow(unused_imports)]
@@ -11,11 +12,8 @@ mod dao_proposal {
         ExecutionInput,
     };
 
-    use route_manage::RouteManage;
     use erc20::Erc20;
-    // use core::Core;
     use alloc::string::String;
-
     use ink_prelude::vec::Vec;
     use ink_prelude::collections::BTreeMap;
     use ink_storage::{
@@ -169,7 +167,6 @@ mod dao_proposal {
     /// voting_delay:Voting buffer
     /// voting_period:Voting time
     /// proposal_length:Total number of proposals
-    /// route_addr:the addr of route
     /// erc20_addr:the addr of erc20
     /// limit:the limit of create proposal
     /// vote_effective:the effective of vote
@@ -181,7 +178,6 @@ mod dao_proposal {
         voting_delay: u32,
         voting_period: u32,
         proposal_length: u64,
-        route_addr: AccountId,
         erc20_addr: AccountId,
         limit:Limit,
         vote_effective:VoteEffective
@@ -189,7 +185,7 @@ mod dao_proposal {
 
     impl DaoProposal {
         #[ink(constructor)]
-        pub fn new(creator:AccountId,route_addr: AccountId, erc20_addr: AccountId) -> Self {
+        pub fn new(creator:AccountId, erc20_addr: AccountId) -> Self {
             Self {
                 creator,
                 owner: Self::env().caller(),
@@ -197,7 +193,6 @@ mod dao_proposal {
                 voting_delay: 1,
                 voting_period: 259200, //3 days
                 proposal_length: 0,
-                route_addr,
                 erc20_addr,
                 limit:Limit{
                     fee_open:false,
@@ -419,7 +414,6 @@ mod dao_proposal {
                 ink_env::test::default_accounts::<ink_env::DefaultEnvironment>()
                     .expect("Cannot get accounts");
             let mut govnance_dao = DaoProposal::new(
-                AccountId::from([0x01; 32]),
                 AccountId::from([0x01; 32]),
                 AccountId::from([0x01; 32]),
             );
