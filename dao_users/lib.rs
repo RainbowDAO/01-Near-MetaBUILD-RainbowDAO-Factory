@@ -89,8 +89,23 @@ mod dao_users {
         /// add a group
         /// group:thr struct of group
         #[ink(message)]
-        pub fn add_group(&mut self,group:Group) -> bool {
+        pub fn add_group(
+            &mut self,
+            name:String,
+            join_directly:bool,
+            is_open:bool,
+        ) -> bool {
             let index = self.group_index.clone() + 1;
+            let mut user = BTreeMap::new();
+            user.insert(self.env().caller(),true);
+            let group = Group{
+                id:index,
+                name,
+                join_directly,
+                is_open,
+                users:user.clone(),
+                manager:self.env().caller()
+            };
             self.group_index += 1;
             self.group.insert(index,group);
             true
@@ -115,11 +130,11 @@ mod dao_users {
                 if other_limit.use_nft {
 
                 }
-                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
+                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});
             }else if condition == 6 {
 
             }else{
-                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});//todo 修改时间
+                self.user.insert(Self::env().caller(),User{addr:Self::env().caller(),expire_time:0,role:0});
             }
             true
         }
@@ -129,6 +144,12 @@ mod dao_users {
             let  group =  self.group.get_mut(&index).unwrap();
             assert_eq!(group.id > 0, true);
             group.users.insert(user,true);
+            true
+        }
+        /// Check whether the user has joined
+        #[ink(message)]
+        pub fn init_user(&mut self,user:AccountId) -> bool {
+            self.user.insert(user,User{addr:user,expire_time:0,role:0});
             true
         }
 
@@ -193,13 +214,7 @@ mod dao_users {
         #[ink::test]
         fn it_works() {
             let mut dao_users = DaoUsers::new(AccountId::from([0x01; 32]));
-            assert!(dao_users.add_group(Group {id:0,
-                name:String::from("test"),
-                join_directly:true,
-                is_open:true,
-                users:BTreeMap::new(),
-                manager:AccountId::from([0x01; 32])
-            }) == true);
+            assert!(dao_users.add_group(String::from("test"),true,true) == true);
         }
     }
 }

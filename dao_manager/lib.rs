@@ -187,6 +187,10 @@ mod dao_manager {
                 }
             }
         }
+        /// get the category of dao
+        pub fn get_dao_category(&mut self) -> String {
+            self.category.clone()
+        }
 
         /// change the dao status
         #[ink(message)]
@@ -277,7 +281,7 @@ mod dao_manager {
             self._init_setting(setting_code_hash,version);
             self._init_base(base_code_hash, params.base, version);
             self._init_erc20(erc20_code_hash, params.erc20, version);
-            self._init_user(user_code_hash, version);
+            self._init_user(user_code_hash, version,self.env().caller());
             self._init_vault(vault_code_hash, version);
             self._init_proposal(proposal_code_hash, version);
             self.active = true;
@@ -363,7 +367,7 @@ mod dao_manager {
             true
         }
         /// init user
-        fn _init_user(&mut self,user_code_hash:Hash,version: u128) -> bool {
+        fn _init_user(&mut self,user_code_hash:Hash,version: u128,owner:AccountId) -> bool {
             let salt = version.to_le_bytes();
             let total_balance = Self::env().balance();
             assert!(total_balance > CONTRACT_INIT_BALANCE, "not enough unit to instance contract");
@@ -375,7 +379,8 @@ mod dao_manager {
                 .params();
             let user_init_result = ink_env::instantiate_contract(&user_instance_params);
             let user_addr = user_init_result.expect("failed at instantiating the `user` contract");
-            let  user_instance: DaoUsers = ink_env::call::FromAccountId::from_account_id(user_addr);
+            let mut user_instance: DaoUsers = ink_env::call::FromAccountId::from_account_id(user_addr);
+            user_instance.init_user(owner);
             self.components.dao_users = Some(user_instance);
             self.component_addrs.dao_users_addr = Some(user_addr);
             true
