@@ -170,12 +170,25 @@ mod dao_factory {
             let list = self.instance_map_by_owner.get(&user).unwrap().clone();
             list
         }
+
+        /// show all daos
+        #[ink(message)]
+        pub fn list_dao(&self) -> Vec<DAOInstance> {
+            let mut dao_vec = Vec::new();
+            let mut iter = self.instance_map.values();
+            let mut dao = iter.next();
+            while dao.is_some() {
+                dao_vec.push(dao.unwrap().clone());
+                dao = iter.next();
+            }
+            dao_vec
+        }
         /// create a record after user join
         #[ink(message)]
-        pub fn joined_dao(&mut self) -> bool {
+        pub fn joined_dao(&mut self,index:u64) -> bool {
             let user = self.env().caller();
             let  id_list = self.instance_map_by_owner.entry(user.clone()).or_insert(Vec::new());
-            id_list.push(self.instance_index);
+            id_list.push(index);
             true
         }
 
