@@ -1,6 +1,6 @@
 .idea/
 /target/
-*/target/*
+/Near-version-contract-for-Nearnetwork/*/target/*
 # Ignore backup files creates by cargo fmt.
 **/*.rs.bk
 
