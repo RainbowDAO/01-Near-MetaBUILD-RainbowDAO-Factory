@@ -1,0 +1,26 @@
+[package]
+name = "dao_base"
+version = "0.1.0"
+authors = ["[your_name] <[your_email]>"]
+edition = "2018"
+resolver = "2"
+
+[dependencies]
+near-sdk = "3.1.0"
+
+[lib]
+name = "dao_base"
+path = "lib.rs"
+crate-type = [
+	# Used for normal contract Wasm blobs.
+	"cdylib",
+    "rlib",
+]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = false
