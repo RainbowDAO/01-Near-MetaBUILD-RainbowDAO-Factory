@@ -1,1 +1,2 @@
-# RainbowDAO-Protocol-Ink-milestone_2
+# 01-Near-MetaBUILD-RainbowDAO-Factory
+01-Near-MetaBUILD-RainbowDAO-Factory
