@@ -1,0 +1,25 @@
+[package]
+name = "dao_factory"
+version = "0.1.0"
+authors = ["[your_name] <[your_email]>"]
+edition = "2018"
+
+[dependencies]
+near-sdk = "4.0.0-pre.2"
+
+[lib]
+name = "dao_factory"
+path = "lib.rs"
+crate-type = [
+	# Used for normal contract Wasm blobs.
+    "cdylib",
+    "rlib",
+]
+
+[profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = false
