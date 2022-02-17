@@ -6,15 +6,7 @@ edition = "2018"
 resolver = "2"
 
 [dependencies]
-ink_primitives = { version = "3.0.0-rc3", path = "../ink/crates/primitives", default-features = false }
-ink_metadata = { version = "3.0.0-rc3", path = "../ink/crates/metadata", default-features = false, features = ["derive"], optional = true }
-ink_env = { version = "3.0.0-rc3", path = "../ink/crates/env", default-features = false }
-ink_prelude = { version = "3.0.0-rc3", path = "../ink/crates/prelude", default-features = false }
-ink_storage = { version = "3.0.0-rc3", path = "../ink/crates/storage", default-features = false }
-ink_lang = { version = "3.0.0-rc3", path = "../ink/crates/lang", default-features = false }
-
-scale = { package = "parity-scale-codec", version = "2.1", default-features = false, features = ["derive"] }
-scale-info = { version = "1.0.0", default-features = false, features = ["derive"], optional = true }
+near-sdk = "4.0.0-pre.2"
 
 [lib]
 name = "template_manager"
@@ -25,17 +17,10 @@ crate-type = [
     "rlib",
 ]
 
-[features]
-default = ["std"]
-std = [
-    "ink_metadata/std",
-    "ink_env/std",
-    "ink_storage/std",
-    "ink_prelude/std",
-    "ink_primitives/std",
-    "scale/std",
-    "scale-info/std",
-]
-ink-as-dependency = []
 [profile.release]
+codegen-units = 1
+opt-level = "z"
+lto = true
+debug = false
+panic = "abort"
 overflow-checks = false
